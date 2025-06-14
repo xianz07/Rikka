@@ -4,10 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>档案关系系统</title>
+    
+    <!-- ✅ 修复点：同时包含两个 meta 标签以获得最佳兼容性 -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    
     <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
     <link rel="stylesheet" href="style.css">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
 </head>
 <body>
     <main id="main-container">
@@ -79,7 +84,16 @@
             </div>
         </div>
         
-        <!-- ... (其他弹窗，如历史记录) ... -->
+        <!-- 历史记录弹窗 -->
+        <div id="history-modal" class="modal-wrapper hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="history-title">修改历史</h3>
+                    <button id="history-close-btn" class="close-button">×</button>
+                </div>
+                <div id="history-list" class="modal-body"></div>
+            </div>
+        </div>
     </main>
     
     <script src="https://cdn.jsdelivr.net/npm/leancloud-storage/dist/av-min.js"></script>
