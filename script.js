@@ -1,4 +1,3 @@
-// --- script.js (最终修复版 v2，修正函数定义顺序) ---
 document.addEventListener('DOMContentLoaded', function() {
     // --- 初始化和全局变量 ---
     const APP_ID = 'KaL72m8OYrLQxlJVg6wTYBzv-gzGzoHsz';
@@ -12,7 +11,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const edges = new vis.DataSet([]);
     let editingNodeId = null; 
 
-    // ✅ 修复点：将 getDeviceId 函数的定义提前到所有调用它的函数之前
     function getDeviceId() {
         let deviceId = localStorage.getItem('deviceId');
         if (!deviceId) {
@@ -22,7 +20,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return deviceId;
     }
 
-    // --- DOM 元素获取 (在这里获取所有可能用到的元素) ---
+    // --- DOM 元素获取 ---
     const activationWrapper = document.getElementById('activation-wrapper');
     const activateBtn = document.getElementById('activate-btn');
     const activationStatus = document.getElementById('activation-status');
@@ -64,7 +62,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- 激活码逻辑 ---
     async function checkActivation() {
-        const deviceId = getDeviceId(); // 现在调用时，getDeviceId 肯定已经被定义了
+        const deviceId = getDeviceId();
         const query = new AV.Query('ActivatedDevices').equalTo('deviceId', deviceId);
         try {
             const device = await query.first();
@@ -89,10 +87,17 @@ document.addEventListener('DOMContentLoaded', function() {
             const deviceId = getDeviceId();
             const result = await AV.Cloud.run('verifyAndUseCode', { code: codeInput, deviceId: deviceId });
             
+            console.log("云函数返回结果:", result);
+
             if (result && result.success) {
+                console.log("✅ 激活成功！进入 if (result.success) 代码块。");
                 activationStatus.textContent = '激活成功！';
+                
+                console.log("准备在1秒后调用 showApp() 函数...");
                 setTimeout(showApp, 1000);
+
             } else {
+                console.log("激活失败，服务器返回信息:", result ? result.message : "无有效返回");
                 activationStatus.textContent = result ? result.message : "激活失败，未知错误。";
                 activateBtn.disabled = false;
             }
@@ -110,10 +115,15 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function showApp() {
+        console.log("🚀 1. showApp 函数被成功调用！");
+
         activationWrapper.classList.add('hidden');
         appContainer.classList.remove('hidden');
         
+        console.log("🚀 2. 容器的 hidden 类已切换。");
+
         if (!network) {
+            console.log("🚀 3. Network 实例不存在，准备创建...");
             const container = document.getElementById('relation-graph');
             const data = { nodes: nodes, edges: edges };
             const options = {
@@ -123,9 +133,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 interaction: { hover: true, tooltipDelay: 200 },
             };
             network = new vis.Network(container, data, options);
+            console.log("🚀 4. Network 实例已创建。");
             initializeAppEventListeners();
         }
         
+        console.log("🚀 5. 准备调用 loadData()。");
         loadData();
     }
     
@@ -164,67 +176,69 @@ document.addEventListener('DOMContentLoaded', function() {
                 bioCard.classList.remove('hidden');
             }
         });
+        console.log("🚀 6. 主应用事件监听器已初始化。");
     }
 
     // --- 完整的功能函数定义 ---
-    function closeBioCard() { document.getElementById('bio-card').classList.add('hidden'); }
+    function closeBioCard() { bioCard.classList.add('hidden'); }
 
     async function loadData() {
+        console.log("🚀 7. loadData 函数开始执行。");
         try {
             const nodeQuery = new AV.Query('Nodes');
             nodeQuery.limit(1000);
             const remoteNodes = await nodeQuery.find();
-            const networkNodes = remoteNodes.map(node => ({ id: node.id, label: node.get('label'), image: node.get('image') || 'https://i.pravatar.cc/150', bio: node.get('bio') }));
-            const nodesDataSet = document.getElementById('nodes');
-            if (nodesDataSet) {
-                nodesDataSet.clear();
-                nodesDataSet.add(networkNodes);
-            } else if (nodes) {
-                nodes.clear();
-                nodes.add(networkNodes);
-            }
+            console.log("🚀 8. 成功从云端获取到", remoteNodes.length, "个人物。");
+
+            const networkNodes = remoteNodes.map(node => ({
+                id: node.id,
+                label: node.get('label'),
+                image: (node.get('image') || 'https://i.pravatar.cc/150').replace(/^http:\/\//i, 'https://'),
+                bio: node.get('bio')
+            }));
+            nodes.clear();
+            nodes.add(networkNodes);
+            console.log("🚀 9. 人物数据已加载到关系图中。");
             updateSelects(networkNodes);
 
             const edgeQuery = new AV.Query('Edges');
             edgeQuery.limit(1000);
             const remoteEdges = await edgeQuery.find();
+            console.log("🚀 10. 成功从云端获取到", remoteEdges.length, "个关系。");
+            
             const networkEdges = remoteEdges.map(edge => ({ id: edge.id, from: edge.get('from'), to: edge.get('to'), label: edge.get('label') }));
-            const edgesDataSet = document.getElementById('edges');
-            if (edgesDataSet) {
-                edgesDataSet.clear();
-                edgesDataSet.add(networkEdges);
-            } else if (edges) {
-                edges.clear();
-                edges.add(networkEdges);
-            }
-        } catch (error) { console.error("数据加载失败:", error); }
+            edges.clear();
+            edges.add(networkEdges);
+            console.log("🚀 11. 关系数据已加载到关系图中。loadData 执行完毕！");
+        } catch (error) { 
+            console.error("❌ 在 loadData 函数中发生严重错误:", error); 
+        }
     }
-
 
     function openForm(mode = 'add', nodeData = {}) {
         editingNodeId = (mode === 'edit') ? nodeData.id : null;
-        document.getElementById('form-title').textContent = (mode === 'edit') ? '编辑基本信息' : '添加新人物';
-        document.getElementById('save-node-btn').textContent = (mode === 'edit') ? '保存修改' : '创建人物';
+        formTitle.textContent = (mode === 'edit') ? '编辑基本信息' : '添加新人物';
+        saveNodeBtn.textContent = (mode === 'edit') ? '保存修改' : '创建人物';
         document.getElementById('node-name').value = nodeData.label || '';
         document.getElementById('node-bio').value = nodeData.bio || '';
-        document.getElementById('node-image').value = null; 
-        document.getElementById('image-preview').src = nodeData.image || '';
-        document.getElementById('image-preview').classList.toggle('hidden', !nodeData.image);
-        document.getElementById('edge-section').classList.toggle('hidden', mode === 'edit');
-        document.getElementById('form-wrapper').classList.remove('hidden');
+        imageInput.value = null; 
+        imagePreview.src = nodeData.image || '';
+        imagePreview.classList.toggle('hidden', !nodeData.image);
+        edgeSection.classList.toggle('hidden', mode === 'edit');
+        formWrapper.classList.remove('hidden');
     }
 
-    function closeForm() { document.getElementById('form-wrapper').classList.add('hidden'); }
+    function closeForm() { formWrapper.classList.add('hidden'); }
 
     async function saveNode() {
         const label = document.getElementById('node-name').value.trim();
         const bio = document.getElementById('node-bio').value.trim();
         if (!label || !bio) { return alert('人物姓名和简介不能为空！'); }
-        const saveNodeBtn = document.getElementById('save-node-btn');
+        
         saveNodeBtn.disabled = true;
         saveNodeBtn.textContent = '保存中...';
         let imageUrl = editingNodeId ? (nodes.get(editingNodeId).image || '') : '';
-        const file = document.getElementById('node-image').files[0];
+        const file = imageInput.files[0];
         try {
             if (file) {
                 const avFile = new AV.File(file.name, file);
@@ -242,7 +256,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (imageUrl) node.set('image', imageUrl);
             await node.save();
             alert(editingNodeId ? '人物更新成功！' : '人物添加成功！');
-            document.getElementById('add-form').reset();
+            addForm.reset();
             closeForm();
             loadData();
         } catch (error) {
@@ -284,7 +298,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 await edge.save();
                 alert('关系添加成功！');
                 document.getElementById('edge-label').value = '';
-                loadData(); // 添加关系后刷新图
+                loadData();
             } catch (error) { console.error('添加关系失败: ', error); alert('添加失败！'); }
         } else {
             alert('请确保选择了两个不同的人物并填写了关系！');
@@ -296,8 +310,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (file) {
             const reader = new FileReader();
             reader.onload = (event) => {
-                document.getElementById('image-preview').src = event.target.result;
-                document.getElementById('image-preview').classList.remove('hidden');
+                imagePreview.src = event.target.result;
+                imagePreview.classList.remove('hidden');
             };
             reader.readAsDataURL(file);
         }
@@ -334,7 +348,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const value = nodeJSON[key] || '';
             detailsContent.insertAdjacentHTML('beforeend', createFieldHTML(key, label, value, type));
         });
-        document.getElementById('details-modal').classList.remove('hidden');
+        detailsModal.classList.remove('hidden');
     }
 
     function createFieldHTML(key, label, value, type = 'input') {
@@ -351,7 +365,7 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             await node.save();
             alert('详细档案保存成功！');
-            document.getElementById('details-modal').classList.add('hidden');
+            detailsModal.classList.add('hidden');
         } catch (error) {
             alert('保存失败！');
             console.error(error);
