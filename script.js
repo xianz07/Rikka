@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     AV.init({ appId: APP_ID, appKey: APP_KEY, serverURL: SERVER_URL });
 
-    let network = null; // 将 network 声明在全局，初始为 null
+    let network = null;
     const nodes = new vis.DataSet([]);
     const edges = new vis.DataSet([]);
     let editingNodeId = null; 
@@ -16,175 +16,94 @@ document.addEventListener('DOMContentLoaded', function() {
     const activateBtn = document.getElementById('activate-btn');
     const activationStatus = document.getElementById('activation-status');
     const appContainer = document.getElementById('app-container');
-    const formWrapper = document.getElementById('form-wrapper');
-    const showFormBtn = document.getElementById('show-form-btn');
-    const formCloseBtn = document.getElementById('form-close-btn');
-    const formTitle = document.getElementById('form-title');
-    const addForm = document.getElementById('add-form');
-    const saveNodeBtn = document.getElementById('save-node-btn');
-    const addEdgeBtn = document.getElementById('add-edge-btn');
-    const imageInput = document.getElementById('node-image');
-    const imagePreview = document.getElementById('image-preview');
-    const bioCard = document.getElementById('bio-card');
-    const bioAvatar = document.getElementById('bio-avatar');
-    const bioName = document.getElementById('bio-name');
-    const bioText = document.getElementById('bio-text');
-    const closeBioBtn = document.getElementById('close-btn');
-    const detailsBtn = document.getElementById('details-btn');
-    const editBtn = document.getElementById('edit-btn');
-    const deleteBtn = document.getElementById('delete-btn');
     const detailsModal = document.getElementById('details-modal');
-    const detailsModalCloseBtn = document.getElementById('details-modal-close-btn');
-    const saveDetailsBtn = document.getElementById('save-details-btn');
-    const addFieldBtn = document.getElementById('add-field-btn');
-
-    const PRESET_FIELDS = [
-        { key: 'gender', label: '性别' }, { key: 'birthDate', label: '出生日期' },
-        { key: 'idNumber', label: '身份证号码' }, { key: 'hukouLocation', label: '户籍所在地' },
-        { key: 'currentAddress', label: '常住地址' }, { key: 'phone', label: '手机号' },
-        { key: 'wechat', label: '微信号' }, { key: 'email', label: '邮箱' },
-        { key: 'maritalStatus', label: '婚姻状况' }, { key: 'politicalStatus', label: '政治面貌' },
-        { key: 'education', label: '学历层次' }, { key: 'major', label: '专业方向' },
-        { key: 'company', label: '当前工作单位' }, { key: 'jobTitle', label: '职务/岗位' },
-        { key: 'hobbies', label: '兴趣爱好', type: 'textarea' },
-        { key: 'remarks', label: '备注', type: 'textarea' }
-    ];
+    // ... 其他所有 getElementById 的代码
+    
+    const PRESET_FIELDS = [/* ... */]; // 省略以保持简洁
 
     // --- 激活码逻辑 ---
     async function checkActivation() {
+        console.log("A. 页面加载，开始检查激活状态...");
         const deviceId = getDeviceId();
         const query = new AV.Query('ActivatedDevices').equalTo('deviceId', deviceId);
         try {
             const device = await query.first();
             if (device) {
+                console.log("B. 设备已激活，准备显示主应用。");
                 showApp();
             } else {
+                console.log("C. 设备未激活，显示激活界面。");
                 activationWrapper.classList.remove('hidden');
             }
         } catch (error) {
+            console.error("D. 检查激活状态时出错:", error);
             activationStatus.textContent = '无法连接验证服务器，请刷新重试。';
         }
     }
 
     async function activateDevice() {
-        const codeInput = document.getElementById('activation-code-input').value.trim();
-        if (!codeInput) return;
+        console.log("1. '激活'按钮被点击，activateDevice 函数开始执行。");
 
+        const codeInput = document.getElementById('activation-code-input').value.trim();
+        console.log("2. 获取到输入框内容:", `"${codeInput}"`);
+
+        if (!codeInput) {
+            console.log("3. 输入框为空，函数提前退出。");
+            alert("请输入激活码！");
+            return;
+        }
+        
+        console.log("4. 输入框内容不为空，准备调用云函数。");
         activationStatus.textContent = '验证中...';
+
         try {
+            console.log("5. 准备发送请求到云函数 activateCode，参数为:", { code: codeInput, deviceId: getDeviceId() });
             const result = await AV.Cloud.run('activateCode', { code: codeInput, deviceId: getDeviceId() });
+            
+            console.log("6. 云函数成功返回结果:", result);
             if (result.success) {
+                console.log("7. 激活成功！");
                 activationStatus.textContent = '激活成功！';
                 setTimeout(showApp, 1000);
             } else {
+                console.log("8. 激活失败，服务器返回信息:", result.message);
                 activationStatus.textContent = result.message;
             }
         } catch (error) {
+            console.error("9. 调用云函数时发生网络错误或服务器内部错误:", error);
             activationStatus.textContent = '激活失败，请检查网络或联系管理员。';
-            console.error(error);
         }
     }
     
-    function getDeviceId() {
-        let deviceId = localStorage.getItem('deviceId');
-        if (!deviceId) {
-            deviceId = 'device_' + Date.now() + Math.random().toString(36).substr(2, 9);
-            localStorage.setItem('deviceId', deviceId);
-        }
-        return deviceId;
-    }
+    function getDeviceId() { /* ... 和原来一样 ... */ }
 
     function showApp() {
+        console.log("E. showApp 函数被调用，显示主应用界面。");
         activationWrapper.classList.add('hidden');
         appContainer.classList.remove('hidden');
         
-        const container = document.getElementById('relation-graph');
-        const data = { nodes: nodes, edges: edges };
-        const options = { /* 你可以把之前的 options 配置复制到这里 */ };
-        network = new vis.Network(container, data, options);
-
-        initializeEventListeners();
+        if (!network) { // 防止重复初始化
+            const container = document.getElementById('relation-graph');
+            const data = { nodes: nodes, edges: edges };
+            const options = { /* ... 选项 ... */ };
+            network = new vis.Network(container, data, options);
+            console.log("F. vis.js network 实例已创建。");
+        }
+        
         loadData();
     }
-
-    function initializeEventListeners() {
-        activateBtn.addEventListener('click', activateDevice);
-        detailsModalCloseBtn.addEventListener('click', () => detailsModal.classList.add('hidden'));
-
-        network.on('click', function(params) {
-            if (params.nodes.length > 0) {
-                const nodeId = params.nodes[0];
-                const nodeData = nodes.get(nodeId);
-                
-                bioAvatar.src = nodeData.image;
-                bioName.textContent = nodeData.label;
-                bioText.textContent = nodeData.bio;
-                
-                detailsBtn.onclick = () => { closeBioCard(); openDetailsModal(nodeId); };
-                editBtn.onclick = () => { /* ... */ };
-                deleteBtn.onclick = () => { /* ... */ };
-
-                bioCard.classList.remove('hidden');
-            }
-        });
-    }
-
-    function closeBioCard() {
-        bioCard.classList.add('hidden');
-    }
-
-    // --- 详细档案逻辑 ---
-    async function openDetailsModal(nodeId) {
-        const node = await AV.Object.createWithoutData('Nodes', nodeId).fetch();
-        document.getElementById('details-modal-title').textContent = `${node.get('label')} 的详细档案`;
-        
-        const detailsContent = document.getElementById('details-content');
-        detailsContent.innerHTML = '';
-        
-        PRESET_FIELDS.forEach(field => {
-            const value = node.get(field.key) || '';
-            detailsContent.insertAdjacentHTML('beforeend', createFieldHTML(field.key, field.label, value, field.type));
-        });
-        
-        saveDetailsBtn.onclick = () => saveDetails(nodeId);
-        detailsModal.classList.remove('hidden');
-    }
-
-    function createFieldHTML(key, label, value, type = 'input') {
-        const inputElement = type === 'textarea'
-            ? `<textarea data-key="${key}">${value}</textarea>`
-            : `<input type="text" data-key="${key}" value="${value}">`;
-        
-        return `
-            <div class="detail-entry">
-                <div class="detail-entry-label">${label}</div>
-                <div class="detail-entry-value">${inputElement}</div>
-            </div>
-        `;
-    }
-
-    async function saveDetails(nodeId) {
-        const node = AV.Object.createWithoutData('Nodes', nodeId);
-        const entries = document.querySelectorAll('#details-content [data-key]');
-        
-        entries.forEach(entry => {
-            node.set(entry.dataset.key, entry.value);
-        });
-
-        try {
-            await node.save();
-            alert('详细档案保存成功！');
-            detailsModal.classList.add('hidden');
-        } catch (error) {
-            alert('保存失败！');
-            console.error(error);
-        }
-    }
-
-    async function loadData() {
-        // ... (loadData 函数和之前一样)
-    }
+    
+    // --- 其他所有函数 (loadData, openDetailsModal 等) 和之前一样 ---
+    // ...
 
     // --- 初始化 ---
+    console.log("0. DOMContentLoaded 事件触发，脚本开始执行。");
+    // 确保激活按钮的事件监听器被绑定
+    activateBtn.addEventListener('click', activateDevice);
+    console.log("Z. 为 #activate-btn 按钮绑定了点击事件。");
+    
     checkActivation();
 });
+
+// 为了简洁，我省略了所有其他函数的代码体。
+// 请确保你的文件里有完整的函数定义。
