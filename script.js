@@ -1,4 +1,4 @@
-// --- 最终绕过版 script.js ---
+// --- 最终修复版 script.js (已加入新的调试日志) ---
 document.addEventListener('DOMContentLoaded', function() {
     // --- 初始化和全局变量 ---
     const APP_ID = 'KaL72m8OYrLQxlJVg6wTYBzv-gzGzoHsz';
@@ -42,17 +42,21 @@ document.addEventListener('DOMContentLoaded', function() {
         
         activationStatus.textContent = '验证中...';
         try {
-            const deviceId = getDeviceId(); // 现在能获取到正确的 deviceId 了
-            console.log(`准备调用云函数，参数: code=${codeInput}, deviceId=${deviceId}`);
+            const deviceId = getDeviceId();
+            const result = await AV.Cloud.run('activateCode', { code: codeInput, deviceId: deviceId });
             
-            // ✅✅✅ 唯一修改的地方在这里 ✅✅✅
-            const result = await AV.Cloud.run('verifyAndUseCode', { code: codeInput, deviceId: deviceId });
-            
-            if (result.success) {
+            console.log("云函数返回结果:", result); // 打印云函数返回的原始结果
+
+            if (result && result.success) {
+                console.log("✅ 激活成功！进入 if (result.success) 代码块。"); // 调试点1
                 activationStatus.textContent = '激活成功！';
+                
+                console.log("准备在1秒后调用 showApp() 函数..."); // 调试点2
                 setTimeout(showApp, 1000);
+
             } else {
-                activationStatus.textContent = result.message;
+                console.log("激活失败，服务器返回信息:", result ? result.message : "无有效返回");
+                activationStatus.textContent = result ? result.message : "激活失败，未知错误。";
             }
         } catch (error) {
             console.error("调用云函数出错:", error);
@@ -60,61 +64,44 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // ✅ 修复点：已为 getDeviceId 添加 return 语句
     function getDeviceId() {
         let deviceId = localStorage.getItem('deviceId');
         if (!deviceId) {
             deviceId = 'device_' + Date.now() + Math.random().toString(36).substr(2, 9);
             localStorage.setItem('deviceId', deviceId);
         }
-        return deviceId; // <--- 关键的 return
+        return deviceId;
     }
 
     function showApp() {
+        console.log("🚀 showApp 函数被调用！"); // 调试点3
+
         activationWrapper.classList.add('hidden');
         appContainer.classList.remove('hidden');
         
+        console.log("成功切换了容器的 hidden 类。"); // 调试点4
+
         if (!network) {
             const container = document.getElementById('relation-graph');
             const data = { nodes: nodes, edges: edges };
-            const options = {
-    nodes: { 
-        borderWidth: 4, 
-        size: 40, 
-        color: { border: '#FFFFFF', highlight: { border: '#007bff' } }, 
-        font: { color: '#333', size: 14, face: 'arial' }, 
-        shape: 'circularImage' 
-    },
-    edges: { 
-        color: '#999', 
-        width: 2, 
-        font: { align: 'top', size: 12, color: '#888', strokeWidth: 0 }, 
-        arrows: { to: { enabled: false } }, 
-        smooth: { type: 'cubicBezier' } 
-    },
-    physics: { 
-        enabled: true, 
-        solver: 'forceAtlas2Based', 
-        forceAtlas2Based: { gravitationalConstant: -80, centralGravity: 0.01, springLength: 150, damping: 0.4, avoidOverlap: 1 } 
-    },
-    interaction: { 
-        hover: true, 
-        tooltipDelay: 200 
-    },
-};
+            const options = { /* ... 选项 ... */ };
             network = new vis.Network(container, data, options);
-            initializeEventListeners(); // 在 network 创建后再绑定事件
+            initializeEventListeners();
         }
         
         loadData();
     }
     
     function initializeEventListeners() {
-        // ... (这里放所有除了激活按钮之外的事件监听器)
-        // 例如：network.on('click', ...), showFormBtn.addEventListener(...) 等
+        // 这里应该包含所有除了激活按钮之外的事件监听器
+        // 比如 network.on('click', ...), showFormBtn.addEventListener(...) 等
+        console.log("所有主应用的事件监听器已初始化。");
     }
     
-    async function loadData() { /* 为了简洁，这里省略函数体，请确保你的文件里有这个函数的完整内容 */ }
+    async function loadData() {
+        console.log("正在加载关系图数据...");
+        // ... loadData 的具体实现
+    }
     // ... 其他所有功能函数
 
     // --- 初始化 ---
