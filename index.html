@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>人物关系图</title>
+    <title>动态人物关系图</title>
     <!-- 引入 vis-network 库 -->
     <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
     <!-- 引入我们自己的样式文件 -->
@@ -11,20 +11,46 @@
 </head>
 <body>
 
+    <h1>人物关系图</h1>
+    <p class="subtitle">任何人都可以添加新的人物和关系，数据会实时保存和更新！</p>
+
     <!-- 这是关系图的容器 -->
     <div id="relation-graph"></div>
+
+    <!-- 添加新人物的表单 -->
+    <div class="form-container">
+        <h3>添加新的人物或关系</h3>
+        <form id="add-form" onsubmit="return false;">
+            <input type="text" id="node-name" placeholder="人物姓名" required>
+            <input type="text" id="node-bio" placeholder="人物简介" required>
+            <input type="url" id="node-image" placeholder="头像图片URL (可选)">
+            <button type="submit" id="add-node-btn">添加人物</button>
+            <hr>
+            <select id="from-node"></select>
+            <span>与</span>
+            <select id="to-node"></select>
+            <input type="text" id="edge-label" placeholder="关系 (如: 师徒)">
+            <button type="button" id="add-edge-btn">添加关系</button>
+        </form>
+    </div>
 
     <!-- 这是点击头像后显示的简介卡片 (默认隐藏) -->
     <div id="bio-card" class="hidden">
         <div class="card-content">
-            <span id="close-btn">&times;</span>
+            <span id="close-btn">×</span>
             <img id="bio-avatar" src="" alt="Avatar">
             <h2 id="bio-name"></h2>
             <p id="bio-text"></p>
         </div>
     </div>
 
-    <!-- 引入我们自己的脚本文件 -->
+    <!-- 
+      ✅✅✅ 问题就在这里！✅✅✅
+      必须先加载 LeanCloud 的库，这样浏览器才知道 "AV" 是什么。
+    -->
+    <script src="https://cdn.jsdelivr.net/npm/leancloud-storage/dist/av-min.js"></script>
+    
+    <!-- 然后再加载我们自己的脚本，它需要使用 "AV" -->
     <script src="script.js"></script>
 
 </body>
