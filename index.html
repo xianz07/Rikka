@@ -9,7 +9,7 @@
 </head>
 <body>
     <!-- 激活码输入遮罩层 -->
-    <div id="activation-wrapper">
+    <div id="activation-wrapper" class="hidden">
         <div class="form-container">
             <h3>请输入激活码</h3>
             <input type="text" id="activation-code-input" placeholder="输入激活码">
@@ -20,18 +20,38 @@
 
     <!-- 主应用界面 (默认隐藏) -->
     <div id="app-container" class="hidden">
-        <!-- 关系图容器 -->
         <div id="relation-graph"></div>
-        <!-- 浮动按钮 -->
         <button id="show-form-btn" title="添加新人物">+</button>
     </div>
 
-    <!-- 添加/编辑人物的基本信息表单 -->
+    <!-- 添加/编辑人物基本信息表单 -->
     <div id="form-wrapper" class="hidden">
-        <!-- ... 和之前版本类似，但做了简化 ... -->
+        <div class="form-container">
+            <span id="form-close-btn" class="close-button">×</span>
+            <h3 id="form-title">添加新人物</h3>
+            <form id="add-form" onsubmit="return false;">
+                <div class="form-section">
+                    <input type="text" id="node-name" placeholder="人物姓名" required>
+                    <textarea id="node-bio" placeholder="人物简介" required rows="3"></textarea>
+                    <label for="node-image">上传头像 (可选):</label>
+                    <input type="file" id="node-image" accept="image/*">
+                    <img id="image-preview" src="" alt="图片预览" class="hidden">
+                </div>
+                <div class="form-section" id="edge-section">
+                    <hr>
+                    <h4>添加关系</h4>
+                    <select id="from-node"></select>
+                    <span>与</span>
+                    <select id="to-node"></select>
+                    <input type="text" id="edge-label" placeholder="关系 (如: 师徒)">
+                    <button type="button" id="add-edge-btn">添加关系</button>
+                </div>
+                <button type="submit" id="save-node-btn">保存人物</button>
+            </form>
+        </div>
     </div>
 
-    <!-- 简介卡片 (点击头像后的小弹窗) -->
+    <!-- 简介卡片 -->
     <div id="bio-card" class="hidden">
         <div class="card-content">
             <span id="close-btn" class="close-button">×</span>
@@ -46,16 +66,14 @@
         </div>
     </div>
 
-    <!-- 全屏详细档案弹窗 (核心新功能) -->
+    <!-- 全屏详细档案弹窗 -->
     <div id="details-modal" class="hidden">
         <div class="modal-header">
             <h2 id="details-modal-title">详细档案</h2>
             <button id="details-modal-close-btn" class="close-button">×</button>
         </div>
         <div class="modal-body">
-            <div id="details-content">
-                <!-- 档案信息将通过JS动态生成在这里 -->
-            </div>
+            <div id="details-content"></div>
             <div class="details-actions">
                 <button id="add-field-btn">添加新字段</button>
                 <button id="save-details-btn">保存所有修改</button>
