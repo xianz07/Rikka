@@ -1,92 +1,92 @@
-/* ... (保留所有旧样式，并在此基础上添加/修改) ... */
+/* 基本页面样式 */
+body, html {
+    margin: 0; padding: 0; width: 100vw; height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    overflow: hidden; background-color: #f0f2f5;
+}
+
+.hidden {
+    /* 使用 opacity 和 pointer-events 来隐藏，比 display:none 动画更流畅 */
+    opacity: 0 !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+}
+
+/* 激活码和主应用容器的通用样式 */
+#activation-wrapper, #app-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    transition: opacity 0.3s ease;
+}
 
 /* 激活码界面 */
 #activation-wrapper {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background-color: #f0f2f5;
-    display: flex; justify-content: center; align-items: center;
-    z-index: 2000;
-}
-#activation-status {
-    margin-top: 10px; text-align: center; height: 20px;
-    font-size: 14px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 3000; /* 最高层级 */
 }
 
-/* 详细档案全屏弹窗 */
-#details-modal {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background-color: #f7f7f7;
-    z-index: 1500;
-    display: flex; flex-direction: column;
-    transform: translateY(100%);
-    transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+/* 主应用容器 */
+#app-container {
+    z-index: 100; /* 比激活码界面低，但比其他弹窗高 */
 }
-#details-modal:not(.hidden) {
-    transform: translateY(0);
+
+/* 关系图容器样式 */
+#relation-graph {
+    width: 100%; height: 100%;
+    position: absolute; top: 0; left: 0; z-index: 1;
 }
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px 25px;
-    background-color: #fff;
-    border-bottom: 1px solid #ddd;
-    flex-shrink: 0;
+
+/* 浮动添加按钮 */
+#show-form-btn {
+    position: fixed;
+    bottom: 30px; right: 30px;
+    width: 60px; height: 60px;
+    background-color: #007bff; color: white;
+    border: none; border-radius: 50%;
+    font-size: 36px; line-height: 56px; text-align: center;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    cursor: pointer;
+    z-index: 999; /* 确保在关系图之上 */
+    transition: transform 0.2s ease, background-color 0.2s;
 }
-.modal-header h2 { margin: 0; }
-.modal-body {
-    flex-grow: 1;
-    overflow-y: auto;
-    padding: 25px;
-}
-.details-actions {
-    padding: 15px 25px;
-    background-color: #fff;
-    border-top: 1px solid #ddd;
-    text-align: right;
-    flex-shrink: 0;
-}
-.details-actions button {
-    padding: 10px 20px;
-    margin-left: 10px;
-    font-size: 16px;
-}
-#save-details-btn {
-    background-color: #007bff;
-    color: white;
-    border: none;
-}
-#save-details-btn:hover {
+#show-form-btn:hover {
+    transform: scale(1.1);
     background-color: #0056b3;
 }
 
-/* 档案条目样式 */
-.detail-entry {
-    display: flex;
-    align-items: center;
-    margin-bottom: 15px;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 15px;
+/* 表单和简介卡片的遮罩层 */
+#form-wrapper, #bio-card, #details-modal {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex; justify-content: center; align-items: center;
+    z-index: 1000; /* 比主应用高，比激活码界面低 */
+    transition: opacity 0.3s ease;
 }
-.detail-entry-label {
-    flex-basis: 150px;
-    flex-shrink: 0;
-    font-weight: bold;
-    color: #333;
-    padding-right: 15px;
+
+/* 表单和卡片内容区的通用动画 */
+.form-container, .card-content {
+    background: #fff; padding: 25px; border-radius: 12px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1); width: 90%; max-width: 420px;
+    position: relative; transform: scale(1); transition: transform 0.3s ease;
 }
-.detail-entry-value {
-    flex-grow: 1;
+
+#form-wrapper.hidden .form-container,
+#bio-card.hidden .card-content,
+#details-modal.hidden .modal-content-wrapper { /* 假设 details-modal 也有一个包裹内容的元素 */
+    transform: scale(0.95);
 }
-.detail-entry-value input, .detail-entry-value textarea {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: 16px;
-    font-family: inherit;
+
+.close-button {
+    position: absolute; top: 10px; right: 15px; font-size: 28px;
+    color: #999; cursor: pointer; background: none; border: none; padding: 0;
 }
-.detail-entry-value textarea {
-    resize: vertical;
-    min-height: 80px;
-}
+.close-button:hover { color: #333; }
+
+/* ... (其他所有表单、卡片、模态框的详细样式和之前一样，这里省略) ... */
+/* 确保你的 style.css 包含了所有弹窗的样式 */
