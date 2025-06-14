@@ -1,4 +1,4 @@
-// --- script.js (最终精简且完整版) ---
+// --- script.js (最终精简且完整版 v2) ---
 document.addEventListener('DOMContentLoaded', function() {
     const APP_ID = 'KaL72m8OYrLQxlJVg6wTYBzv-gzGzoHsz';
     const APP_KEY = 'R60VntUpKs5bsYHGJzWoac5G';
@@ -36,37 +36,44 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         return id;
     };
-    const toggleModal = (modal, show) => modal.classList.toggle('hidden', !show);
+    const toggleModal = (modal, show) => {
+        if (modal) modal.classList.toggle('hidden', !show);
+    };
 
     const checkActivation = async () => {
         try {
             const device = await new AV.Query('ActivatedDevices').equalTo('deviceId', getDeviceId()).first();
             device ? showApp() : showActivation();
-        } catch (error) { dom.activationStatus.textContent = '无法连接验证服务器，请刷新。'; }
+        } catch (error) {
+            if (dom['activation-status']) {
+                dom['activation-status'].textContent = '无法连接验证服务器，请刷新。';
+            }
+            console.error("检查激活状态时出错:", error);
+        }
     };
     const activateDevice = async () => {
         const code = dom['activation-code-input'].value.trim();
         if (!code) return alert("请输入激活码！");
-        dom.activateBtn.disabled = true;
-        dom.activationStatus.textContent = '验证中...';
+        dom['activate-btn'].disabled = true;
+        dom['activation-status'].textContent = '验证中...';
         try {
             const result = await AV.Cloud.run('verifyAndUseCode', { code, deviceId: getDeviceId() });
-            dom.activationStatus.textContent = result.message || '激活失败';
+            dom['activation-status'].textContent = result.message || '激活失败';
             if (result.success) setTimeout(showApp, 500);
-            else dom.activateBtn.disabled = false;
+            else dom['activate-btn'].disabled = false;
         } catch (error) {
-            dom.activationStatus.textContent = '激活失败，请检查网络。';
-            dom.activateBtn.disabled = false;
+            dom['activation-status'].textContent = '激活失败，请检查网络。';
+            dom['activate-btn'].disabled = false;
         }
     };
 
     const showActivation = () => {
-        dom.activateBtn.addEventListener('click', activateDevice);
-        toggleModal(dom.activationWrapper, true);
+        dom['activate-btn'].addEventListener('click', activateDevice);
+        toggleModal(dom['activation-wrapper'], true);
     };
     const showApp = () => {
-        toggleModal(dom.activationWrapper, false);
-        dom.appContainer.classList.remove('hidden');
+        toggleModal(dom['activation-wrapper'], false);
+        dom['app-container'].classList.remove('hidden');
         if (!network) {
             const container = document.getElementById('relation-graph');
             const data = { nodes, edges };
@@ -78,28 +85,29 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     const initializeAppEventListeners = () => {
-        dom.showFormBtn.addEventListener('click', () => openForm('add'));
-        [dom.formCloseBtn, dom.closeBioBtn, dom.historyCloseBtn, dom.detailsModalCloseBtn].forEach(btn => btn.addEventListener('click', () => {
+        dom['show-form-btn'].addEventListener('click', () => openForm('add'));
+        [dom['form-close-btn'], dom['close-btn'], dom['history-close-btn'], dom['details-modal-close-btn']].forEach(btn => btn.addEventListener('click', () => {
             toggleModal(btn.closest('.modal-wrapper'), false);
         }));
-        dom.addForm.addEventListener('submit', saveNode);
-        dom.addEdgeBtn.addEventListener('click', addEdge);
-        dom.saveDetailsBtn.addEventListener('click', () => editingNodeId && saveDetails(editingNodeId));
-        dom.addFieldBtn.addEventListener('click', async () => {
+        dom['add-form'].addEventListener('submit', saveNode);
+        dom['add-edge-btn'].addEventListener('click', addEdge);
+        dom['save-details-btn'].addEventListener('click', () => editingNodeId && saveDetails(editingNodeId));
+        dom['add-field-btn'].addEventListener('click', () => {
             const label = prompt("请输入要添加的信息名称 (例如: QQ号)");
             if (label) {
+                // 使用 pinyin-pro 将中文转为驼峰式拼音作为 key
                 const key = pinyin_pro.pinyin(label, { toneType: 'none', type: 'camel' }).replace(/\s/g, '');
-                if (key) dom.detailsContent.insertAdjacentHTML('beforeend', createFieldHTML(key, label, ''));
+                if (key) dom['details-content'].insertAdjacentHTML('beforeend', createFieldHTML(key, label, ''));
                 else alert("无法为该名称生成字段ID。");
             }
         });
-        dom.imageInput.addEventListener('change', e => {
+        dom['node-image'].addEventListener('change', e => {
             const file = e.target.files[0];
             if (file) {
                 const reader = new FileReader();
                 reader.onload = event => {
-                    dom.imagePreview.src = event.target.result;
-                    dom.imagePreview.classList.remove('hidden');
+                    dom['image-preview'].src = event.target.result;
+                    dom['image-preview'].classList.remove('hidden');
                 };
                 reader.readAsDataURL(file);
             }
@@ -108,13 +116,13 @@ document.addEventListener('DOMContentLoaded', function() {
             if (nodeIds.length > 0) {
                 editingNodeId = nodeIds[0];
                 const nodeData = nodes.get(editingNodeId);
-                dom.bioAvatar.src = nodeData.image;
-                dom.bioName.textContent = nodeData.label;
-                dom.bioText.textContent = nodeData.bio;
-                dom.detailsBtn.onclick = () => { toggleModal(dom.bioCard, false); openDetailsModal(editingNodeId); };
-                dom.editBtn.onclick = () => { toggleModal(dom.bioCard, false); openForm('edit', nodeData); };
-                dom.deleteBtn.onclick = () => deleteNode(editingNodeId);
-                toggleModal(dom.bioCard, true);
+                dom['bio-avatar'].src = nodeData.image;
+                dom['bio-name'].textContent = nodeData.label;
+                dom['bio-text'].textContent = nodeData.bio;
+                dom['details-btn'].onclick = () => { toggleModal(dom['bio-card'], false); openDetailsModal(editingNodeId); };
+                dom['edit-btn'].onclick = () => { toggleModal(dom['bio-card'], false); openForm('edit', nodeData); };
+                dom['delete-btn'].onclick = () => deleteNode(editingNodeId);
+                toggleModal(dom['bio-card'], true);
             }
         });
     };
@@ -137,25 +145,25 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const openForm = (mode, nodeData = {}) => {
         editingNodeId = (mode === 'edit') ? nodeData.id : null;
-        dom.formTitle.textContent = mode === 'edit' ? '编辑基本信息' : '添加新人物';
-        dom.saveNodeBtn.textContent = mode === 'edit' ? '保存修改' : '创建人物';
+        dom['form-title'].textContent = mode === 'edit' ? '编辑基本信息' : '添加新人物';
+        dom['save-node-btn'].textContent = mode === 'edit' ? '保存修改' : '创建人物';
         dom['node-name'].value = nodeData.label || '';
         dom['node-bio'].value = nodeData.bio || '';
-        dom.imageInput.value = null; 
-        dom.imagePreview.src = nodeData.image || '';
-        dom.imagePreview.classList.toggle('hidden', !nodeData.image);
-        dom.edgeSection.classList.toggle('hidden', mode === 'edit');
-        toggleModal(dom.formWrapper, true);
+        dom['node-image'].value = null; 
+        dom['image-preview'].src = nodeData.image || '';
+        dom['image-preview'].classList.toggle('hidden', !nodeData.image);
+        dom['edge-section'].classList.toggle('hidden', mode === 'edit');
+        toggleModal(dom['form-wrapper'], true);
     };
 
     const saveNode = async () => {
         const label = dom['node-name'].value.trim();
         const bio = dom['node-bio'].value.trim();
         if (!label || !bio) return alert('人物姓名和简介不能为空！');
-        dom.saveNodeBtn.disabled = true;
-        dom.saveNodeBtn.textContent = '保存中...';
+        dom['save-node-btn'].disabled = true;
+        dom['save-node-btn'].textContent = '保存中...';
         let imageUrl = editingNodeId ? (nodes.get(editingNodeId).image || '') : '';
-        const file = dom.imageInput.files[0];
+        const file = dom['node-image'].files[0];
         try {
             if (file) {
                 const avFile = new AV.File(file.name, file);
@@ -167,13 +175,13 @@ document.addEventListener('DOMContentLoaded', function() {
             if (imageUrl) node.set('image', imageUrl);
             await node.save();
             alert('操作成功！');
-            dom.addForm.reset();
-            toggleModal(dom.formWrapper, false);
+            dom['add-form'].reset();
+            toggleModal(dom['form-wrapper'], false);
             loadData();
         } catch (error) {
             alert('保存失败！');
         } finally {
-            dom.saveNodeBtn.disabled = false;
+            dom['save-node-btn'].disabled = false;
         }
     };
 
@@ -185,7 +193,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (edgesToDelete.length > 0) await AV.Object.destroyAll(edgesToDelete);
             await AV.Object.createWithoutData('Nodes', nodeId).destroy();
             alert('删除成功！');
-            toggleModal(dom.bioCard, false);
+            toggleModal(dom['bio-card'], false);
             loadData();
         } catch (error) { alert('删除失败！'); }
     };
@@ -217,7 +225,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const openDetailsModal = async (nodeId) => {
         const node = await AV.Object.createWithoutData('Nodes', nodeId).fetch();
-        dom.detailsModalTitle.textContent = `${node.get('label')} 的详细档案`;
+        dom['details-modal-title'].textContent = `${node.get('label')} 的详细档案`;
         const nodeJSON = node.toJSON();
         const allKeys = new Set([...PRESET_FIELDS.map(f => f.key), ...Object.keys(nodeJSON)]);
         const systemKeys = new Set(['objectId', 'createdAt', 'updatedAt', 'ACL', 'label', 'bio', 'image']);
@@ -227,8 +235,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const preset = PRESET_FIELDS.find(f => f.key === key);
             contentHTML += createFieldHTML(key, preset?.label || key, nodeJSON[key] || '', preset?.type);
         });
-        dom.detailsContent.innerHTML = contentHTML;
-        toggleModal(dom.detailsModal, true);
+        dom['details-content'].innerHTML = contentHTML;
+        toggleModal(dom['details-modal'], true);
     };
 
     const createFieldHTML = (key, label, value, type = 'input') => {
@@ -240,7 +248,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const node = await AV.Object.createWithoutData('Nodes', nodeId).fetch();
         const oldData = node.toJSON();
         const historyRecords = [];
-        const entries = dom.detailsContent.querySelectorAll('[data-key]');
+        const entries = dom['details-content'].querySelectorAll('[data-key]');
         
         entries.forEach(entry => {
             const key = entry.dataset.key;
@@ -258,24 +266,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 await node.save();
             }
             alert('详细档案保存成功！');
-            toggleModal(dom.detailsModal, false);
+            toggleModal(dom['details-modal'], false);
         } catch (error) { alert('保存失败！'); }
     };
 
     window.showHistory = async (nodeId, fieldKey, fieldLabel) => {
-        dom.historyTitle.textContent = `"${fieldLabel}" 的修改历史`;
-        dom.historyList.innerHTML = '<p>加载中...</p>';
-        toggleModal(dom.historyModal, true);
+        dom['history-title'].textContent = `"${fieldLabel}" 的修改历史`;
+        dom['history-list'].innerHTML = '<p>加载中...</p>';
+        toggleModal(dom['history-modal'], true);
         try {
             const query = new AV.Query('FieldHistories').equalTo('targetNode', AV.Object.createWithoutData('Nodes', nodeId)).equalTo('fieldKey', fieldKey).descending('createdAt');
             const histories = await query.find();
-            dom.historyList.innerHTML = histories.length === 0 ? '<p>暂无修改记录。</p>' : histories.map(h => `
+            dom['history-list'].innerHTML = histories.length === 0 ? '<p>暂无修改记录。</p>' : histories.map(h => `
                 <div class="history-item">
                     <div class="history-item-meta"><span>${new Date(h.createdAt).toLocaleString()}</span> by <span>${h.get('editorInfo')}</span></div>
                     <div class="history-item-value"><span class="old">${h.get('oldValue')}</span> → <span class="new">${h.get('newValue')}</span></div>
                 </div>`).join('');
-        } catch (error) { dom.historyList.innerHTML = '<p>加载历史失败。</p>'; }
+        } catch (error) { dom['history-list'].innerHTML = '<p>加载历史失败。</p>'; }
     };
     
+    // --- 初始化 ---
     checkActivation();
 });
