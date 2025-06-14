@@ -6,97 +6,104 @@
     <title>私密个人档案系统</title>
     <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
     <link rel="stylesheet" href="style.css">
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 </head>
 <body>
-    <!-- 激活码输入遮罩层 -->
-    <div id="activation-wrapper" class="modal-wrapper hidden">
-        <div class="modal-content form-container">
-            <div class="modal-header">
-                <h3>请输入激活码</h3>
-            </div>
-            <div class="modal-body" style="padding: 20px;">
-                <input type="text" id="activation-code-input" placeholder="输入激活码">
-                <button id="activate-btn" class="action-btn primary">激活</button>
-                <p id="activation-status"></p>
+    <main id="main-container">
+        <!-- 激活码层 -->
+        <div id="activation-wrapper" class="modal-wrapper hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>请输入激活码</h3>
+                </div>
+                <div class="modal-body">
+                    <input type="text" id="activation-code-input" placeholder="输入激活码">
+                    <button id="activate-btn" class="action-btn primary">激活</button>
+                    <p id="activation-status"></p>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- 主应用界面 -->
-    <div id="app-container" class="hidden">
-        <div id="relation-graph"></div>
-        <button id="show-form-btn" title="添加新人物">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-        </button>
-    </div>
+        <!-- 主应用层 -->
+        <div id="app-container" class="hidden">
+            <div id="relation-graph"></div>
+            <button id="show-form-btn" title="添加新人物">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            </button>
+        </div>
 
-    <!-- 添加/编辑人物基本信息表单 -->
-    <div class="modal-wrapper hidden" id="form-wrapper">
-        <div class="modal-content form-container">
-            <div class="modal-header">
-                <h3 id="form-title">添加新人物</h3>
-                <button id="form-close-btn" class="close-button">×</button>
-            </div>
-            <form id="add-form" onsubmit="return false;">
-                <div class="modal-body" style="padding: 20px;">
+        <!-- 添加/编辑人物表单 -->
+        <div class="modal-wrapper hidden" id="form-wrapper">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="form-title">添加新人物</h3>
+                    <button id="form-close-btn" class="close-button">×</button>
+                </div>
+                <form id="add-form" class="modal-body" onsubmit="return false;">
                     <input type="text" id="node-name" placeholder="人物姓名" required>
                     <textarea id="node-bio" placeholder="人物简介" required rows="3"></textarea>
-                    <label for="node-image">上传头像 (可选):</label>
+                    <label for="node-image">上传头像:</label>
                     <input type="file" id="node-image" accept="image/*">
                     <img id="image-preview" src="" alt="图片预览" class="hidden">
                     <div id="edge-section">
                         <hr>
                         <h4>添加关系</h4>
-                        <select id="from-node"></select>
-                        <span>与</span>
-                        <select id="to-node"></select>
+                        <select id="from-node"></select><span>与</span><select id="to-node"></select>
                         <input type="text" id="edge-label" placeholder="关系 (如: 师徒)">
                         <button type="button" id="add-edge-btn" class="action-btn">添加关系</button>
                     </div>
                     <button type="submit" id="save-node-btn" class="action-btn primary">保存人物</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 简介卡片 -->
+        <div class="modal-wrapper hidden" id="bio-card">
+            <div class="modal-content card-content">
+                <button id="close-btn" class="close-button">×</button>
+                <div class="card-header">
+                    <img id="bio-avatar" src="" alt="Avatar">
+                    <h2 id="bio-name"></h2>
                 </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- 简介卡片 -->
-    <div class="modal-wrapper hidden" id="bio-card">
-        <div class="modal-content card-content">
-            <button id="close-btn" class="close-button">×</button>
-            <div class="card-header">
-                <img id="bio-avatar" src="" alt="Avatar">
-                <h2 id="bio-name"></h2>
-            </div>
-            <p id="bio-text"></p>
-            <div class="card-actions">
-                <button id="details-btn" class="action-btn">查看/编辑详细档案</button>
-                <button id="edit-btn" class="action-btn">编辑基本信息</button>
-                <button id="delete-btn" class="action-btn danger">删除</button>
+                <p id="bio-text"></p>
+                <div class="card-actions">
+                    <button id="details-btn" class="action-btn">查看/编辑详细档案</button>
+                    <button id="edit-btn" class="action-btn">编辑基本信息</button>
+                    <button id="delete-btn" class="action-btn danger">删除</button>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- 全屏详细档案弹窗 -->
-    <div class="modal-wrapper hidden" id="details-modal">
-        <div class="modal-content details-container">
-            <div class="modal-header">
-                <h2 id="details-modal-title">详细档案</h2>
-                <button id="details-modal-close-btn" class="close-button">×</button>
-            </div>
-            <div class="modal-body">
-                <div id="details-content"></div>
-            </div>
-            <div class="modal-footer">
-                <button id="add-field-btn" class="action-btn">添加新字段</button>
-                <button id="save-details-btn" class="action-btn primary">保存所有修改</button>
+        <!-- 详细档案弹窗 -->
+        <div class="modal-wrapper hidden" id="details-modal">
+            <div class="modal-content details-container">
+                <div class="modal-header">
+                    <h2 id="details-modal-title">详细档案</h2>
+                    <button id="details-modal-close-btn" class="close-button">×</button>
+                </div>
+                <div id="details-content" class="modal-body"></div>
+                <div class="modal-footer">
+                    <button id="add-field-btn" class="action-btn">添加信息</button>
+                    <button id="save-details-btn" class="action-btn primary">保存所有修改</button>
+                </div>
             </div>
         </div>
-    </div>
 
+        <!-- 历史记录弹窗 -->
+        <div id="history-modal" class="modal-wrapper hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="history-title">修改历史</h3>
+                    <button id="history-close-btn" class="close-button">×</button>
+                </div>
+                <div id="history-list" class="modal-body"></div>
+            </div>
+        </div>
+    </main>
+    
     <script src="https://cdn.jsdelivr.net/npm/leancloud-storage/dist/av-min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pinyin-pro/dist/pinyin-pro.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
