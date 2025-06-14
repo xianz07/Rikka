@@ -11,21 +11,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const container = document.getElementById('relation-graph');
     const data = { nodes: nodes, edges: edges };
     const options = {
-        nodes: {
-            borderWidth: 4, size: 40,
-            color: { border: '#FFFFFF', highlight: { border: '#007bff' } },
-            font: { color: '#333', size: 14, face: 'arial' },
-            shape: 'circularImage',
-        },
-        edges: {
-            color: '#999', width: 2,
-            font: { align: 'top', size: 12, color: '#888', strokeWidth: 0 },
-            arrows: { to: { enabled: false } }, smooth: { type: 'cubicBezier' }
-        },
-        physics: {
-            enabled: true, solver: 'forceAtlas2Based',
-            forceAtlas2Based: { gravitationalConstant: -80, centralGravity: 0.01, springLength: 150, damping: 0.4, avoidOverlap: 1 }
-        },
+        nodes: { borderWidth: 4, size: 40, color: { border: '#FFFFFF', highlight: { border: '#007bff' } }, font: { color: '#333', size: 14, face: 'arial' }, shape: 'circularImage' },
+        edges: { color: '#999', width: 2, font: { align: 'top', size: 12, color: '#888', strokeWidth: 0 }, arrows: { to: { enabled: false } }, smooth: { type: 'cubicBezier' } },
+        physics: { enabled: true, solver: 'forceAtlas2Based', forceAtlas2Based: { gravitationalConstant: -80, centralGravity: 0.01, springLength: 150, damping: 0.4, avoidOverlap: 1 } },
         interaction: { hover: true, tooltipDelay: 200 },
     };
     const network = new vis.Network(container, data, options);
@@ -52,9 +40,23 @@ document.addEventListener('DOMContentLoaded', function() {
     const edgeSection = document.getElementById('edge-section');
 
     // --- 数据操作函数 ---
-    
     async function loadData() {
-        // ... (这部分代码和之前一样)
+        try {
+            const nodeQuery = new AV.Query('Nodes');
+            nodeQuery.limit(1000);
+            const remoteNodes = await nodeQuery.find();
+            const networkNodes = remoteNodes.map(node => ({ id: node.id, label: node.get('label'), image: node.get('image') || 'https://i.pravatar.cc/150', bio: node.get('bio') }));
+            nodes.clear();
+            nodes.add(networkNodes);
+            updateSelects(networkNodes);
+
+            const edgeQuery = new AV.Query('Edges');
+            edgeQuery.limit(1000);
+            const remoteEdges = await edgeQuery.find();
+            const networkEdges = remoteEdges.map(edge => ({ id: edge.id, from: edge.get('from'), to: edge.get('to'), label: edge.get('label') }));
+            edges.clear();
+            edges.add(networkEdges);
+        } catch (error) { console.error("数据加载失败:", error); }
     }
 
     async function saveNode() {
@@ -64,8 +66,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         saveNodeBtn.disabled = true;
         saveNodeBtn.textContent = '保存中...';
+        let imageUrl = editingNodeId ? nodes.get(editingNodeId).image : '';
+        if(imagePreview.src.startsWith('data:')) imageUrl = imagePreview.src;
 
-        let imageUrl = imagePreview.src;
+
         const file = imageInput.files[0];
 
         try {
@@ -88,6 +92,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             await node.save();
             alert(editingNodeId ? '人物更新成功！' : '人物添加成功！');
+            addForm.reset();
             closeForm();
             loadData();
         } catch (error) {
@@ -95,24 +100,20 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('保存失败！');
         } finally {
             saveNodeBtn.disabled = false;
+            saveNodeBtn.textContent = editingNodeId ? '保存修改' : '创建人物';
         }
     }
 
     async function deleteNode(nodeId) {
         if (!confirm('确定要删除这个人物吗？所有与他/她相关的关系线也将被一并删除！')) return;
-
         try {
             const fromQuery = new AV.Query('Edges').equalTo('from', nodeId);
             const toQuery = new AV.Query('Edges').equalTo('to', nodeId);
             const edgeQuery = AV.Query.or(fromQuery, toQuery);
             const edgesToDelete = await edgeQuery.find();
-            if (edgesToDelete.length > 0) {
-                await AV.Object.destroyAll(edgesToDelete);
-            }
-
+            if (edgesToDelete.length > 0) { await AV.Object.destroyAll(edgesToDelete); }
             const nodeToDelete = AV.Object.createWithoutData('Nodes', nodeId);
             await nodeToDelete.destroy();
-            
             alert('删除成功！');
             closeBioCard();
             loadData();
@@ -143,32 +144,43 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // --- UI 控制函数 ---
-    
     function openForm(mode = 'add', nodeData = {}) {
         editingNodeId = (mode === 'edit') ? nodeData.id : null;
         formTitle.textContent = (mode === 'edit') ? '编辑人物' : '添加新人物';
         saveNodeBtn.textContent = (mode === 'edit') ? '保存修改' : '创建人物';
-
+        
         document.getElementById('node-name').value = nodeData.label || '';
         document.getElementById('node-bio').value = nodeData.bio || '';
+        imageInput.value = null; 
         imagePreview.src = nodeData.image || '';
         imagePreview.classList.toggle('hidden', !nodeData.image);
-        addForm.reset();
         
-        edgeSection.classList.toggle('hidden', mode === 'edit'); // 编辑模式下隐藏关系添加
-
+        edgeSection.classList.toggle('hidden', mode === 'edit');
         formWrapper.classList.remove('hidden');
     }
 
     function closeForm() { formWrapper.classList.add('hidden'); }
     function closeBioCard() { bioCard.classList.add('hidden'); }
-    function updateSelects(options) { /* ... 和之前一样 ... */ }
+    
+    function updateSelects(options) {
+        const fromSelect = document.getElementById('from-node');
+        const toSelect = document.getElementById('to-node');
+        const currentFrom = fromSelect.value;
+        const currentTo = toSelect.value;
+        fromSelect.innerHTML = '<option value="">--选择人物1--</option>';
+        toSelect.innerHTML = '<option value="">--选择人物2--</option>';
+        options.forEach(opt => {
+            fromSelect.add(new Option(opt.label, opt.id));
+            toSelect.add(new Option(opt.label, opt.id));
+        });
+        fromSelect.value = currentFrom;
+        toSelect.value = currentTo;
+    }
     
     // --- 事件监听器 ---
-
     showFormBtn.addEventListener('click', () => openForm('add'));
     formCloseBtn.addEventListener('click', closeForm);
-    addForm.addEventListener('submit', saveNode); // 监听表单的submit事件
+    addForm.addEventListener('submit', saveNode);
     addEdgeBtn.addEventListener('click', addEdge);
     closeBioBtn.addEventListener('click', closeBioCard);
     
@@ -188,17 +200,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (params.nodes.length > 0) {
             const nodeId = params.nodes[0];
             const nodeData = nodes.get(nodeId);
-            
             bioAvatar.src = nodeData.image;
             bioName.textContent = nodeData.label;
             bioText.textContent = nodeData.bio;
-            
-            editBtn.onclick = () => {
-                closeBioCard();
-                openForm('edit', nodeData);
-            };
+            editBtn.onclick = () => { closeBioCard(); openForm('edit', nodeData); };
             deleteBtn.onclick = () => deleteNode(nodeId);
-
             bioCard.classList.remove('hidden');
         }
     });
