@@ -1,4 +1,3 @@
-// --- 最终修复版 script.js (已加入新的调试日志) ---
 document.addEventListener('DOMContentLoaded', function() {
     // --- 初始化和全局变量 ---
     const APP_ID = 'KaL72m8OYrLQxlJVg6wTYBzv-gzGzoHsz';
@@ -12,7 +11,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const edges = new vis.DataSet([]);
     let editingNodeId = null; 
 
-    // --- DOM 元素获取 (省略) ---
+    // --- DOM 元素获取 (省略，和之前一样) ---
     const activationWrapper = document.getElementById('activation-wrapper');
     const activateBtn = document.getElementById('activate-btn');
     const activationStatus = document.getElementById('activation-status');
@@ -43,24 +42,25 @@ document.addEventListener('DOMContentLoaded', function() {
         activationStatus.textContent = '验证中...';
         try {
             const deviceId = getDeviceId();
+            console.log(`准备调用云函数 'activateCode'，参数: code=${codeInput}, deviceId=${deviceId}`);
+            
+            // ✅ 修复点：确保这里调用的是 'activateCode'
             const result = await AV.Cloud.run('activateCode', { code: codeInput, deviceId: deviceId });
             
-            console.log("云函数返回结果:", result); // 打印云函数返回的原始结果
-
             if (result && result.success) {
-                console.log("✅ 激活成功！进入 if (result.success) 代码块。"); // 调试点1
                 activationStatus.textContent = '激活成功！';
-                
-                console.log("准备在1秒后调用 showApp() 函数..."); // 调试点2
                 setTimeout(showApp, 1000);
-
             } else {
-                console.log("激活失败，服务器返回信息:", result ? result.message : "无有效返回");
                 activationStatus.textContent = result ? result.message : "激活失败，未知错误。";
             }
         } catch (error) {
             console.error("调用云函数出错:", error);
-            activationStatus.textContent = '激活失败，请检查网络或联系管理员。';
+            // 检查错误信息，如果是 404，给出更具体的提示
+            if (error.message && error.message.includes('404')) {
+                 activationStatus.textContent = '激活失败：云函数未找到。请联系管理员。';
+            } else {
+                 activationStatus.textContent = '激活失败，请检查网络或联系管理员。';
+            }
         }
     }
     
@@ -74,13 +74,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function showApp() {
-        console.log("🚀 showApp 函数被调用！"); // 调试点3
-
         activationWrapper.classList.add('hidden');
         appContainer.classList.remove('hidden');
         
-        console.log("成功切换了容器的 hidden 类。"); // 调试点4
-
         if (!network) {
             const container = document.getElementById('relation-graph');
             const data = { nodes: nodes, edges: edges };
@@ -92,20 +88,9 @@ document.addEventListener('DOMContentLoaded', function() {
         loadData();
     }
     
-    function initializeEventListeners() {
-        // 这里应该包含所有除了激活按钮之外的事件监听器
-        // 比如 network.on('click', ...), showFormBtn.addEventListener(...) 等
-        console.log("所有主应用的事件监听器已初始化。");
-    }
-    
-    async function loadData() {
-        console.log("正在加载关系图数据...");
-        // ... loadData 的具体实现
-    }
-    // ... 其他所有功能函数
+    // ... (其他所有函数，如 initializeEventListeners, loadData 等，都和之前一样)
 
     // --- 初始化 ---
-    // 页面加载时只绑定激活按钮的事件
     activateBtn.addEventListener('click', activateDevice);
     checkActivation();
 });
