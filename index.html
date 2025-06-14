@@ -13,26 +13,26 @@
     <div id="relation-graph"></div>
 
     <!-- 浮动按钮，用于打开表单 -->
-    <button id="show-form-btn">+</button>
+    <button id="show-form-btn" title="添加新人物">+</button>
 
     <!-- 添加/修改的表单容器 (默认隐藏) -->
-    <div id="form-wrapper">
+    <div id="form-wrapper" class="hidden">
         <div class="form-container">
-            <span id="form-close-btn">×</span>
+            <span id="form-close-btn" class="close-button">×</span>
             <h3 id="form-title">添加新人物</h3>
             <form id="add-form" onsubmit="return false;">
                 <!-- 人物信息 -->
-                <div class="form-section" id="node-section">
+                <div class="form-section">
                     <input type="text" id="node-name" placeholder="人物姓名" required>
                     <textarea id="node-bio" placeholder="人物简介" required rows="3"></textarea>
-                    <label for="node-image">上传头像:</label>
+                    <label for="node-image">上传头像 (可选):</label>
                     <input type="file" id="node-image" accept="image/*">
                     <img id="image-preview" src="" alt="图片预览" class="hidden">
                 </div>
                 <!-- 关系信息 -->
                 <div class="form-section" id="edge-section">
-                     <hr>
-                    <h4>添加关系</h4>
+                    <hr>
+                    <h4>添加或修改关系</h4>
                     <select id="from-node"></select>
                     <span>与</span>
                     <select id="to-node"></select>
@@ -45,10 +45,10 @@
         </div>
     </div>
 
-    <!-- 点击头像后显示的简介卡片 -->
+    <!-- 点击头像后显示的简介卡片 (默认隐藏) -->
     <div id="bio-card" class="hidden">
         <div class="card-content">
-            <span id="close-btn">×</span>
+            <span id="close-btn" class="close-button">×</span>
             <img id="bio-avatar" src="" alt="Avatar">
             <h2 id="bio-name"></h2>
             <p id="bio-text"></p>
