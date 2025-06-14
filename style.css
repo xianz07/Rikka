@@ -1,92 +1,175 @@
-/* 基本页面样式 */
+/* --- iOS Style Redesign --- */
+
+/* 1. 全局与基础设置 */
+:root {
+    --system-blue: #007aff;
+    --system-red: #ff3b30;
+    --system-gray: #8e8e93;
+    --system-gray-light: #f2f2f7;
+    --system-bg: #f0f2f5;
+    --card-bg: #ffffff;
+    --text-primary: #000000;
+    --text-secondary: #3c3c4399;
+    --border-color: #c6c6c8;
+    --border-radius-card: 18px;
+    --border-radius-btn: 12px;
+}
+
 body, html {
     margin: 0; padding: 0; width: 100vw; height: 100vh;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    overflow: hidden; background-color: #f0f2f5;
+    font-family: -apple-system, BlinkMacSystemFont, "San Francisco", "Helvetica Neue", "Arial", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow: hidden;
+    background-color: var(--system-bg);
 }
 
-.hidden {
-    /* 使用 opacity 和 pointer-events 来隐藏，比 display:none 动画更流畅 */
-    opacity: 0 !important;
-    pointer-events: none !important;
-    visibility: hidden !important;
-}
+.hidden { display: none !important; }
 
-/* 激活码和主应用容器的通用样式 */
-#activation-wrapper, #app-container {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    transition: opacity 0.3s ease;
-}
+/* 2. 主应用与关系图 */
+#app-container { opacity: 1; transition: opacity 0.3s; }
+#relation-graph { width: 100%; height: 100%; }
 
-/* 激活码界面 */
-#activation-wrapper {
-    background-color: #f0f2f5;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 3000; /* 最高层级 */
-}
-
-/* 主应用容器 */
-#app-container {
-    z-index: 100; /* 比激活码界面低，但比其他弹窗高 */
-}
-
-/* 关系图容器样式 */
-#relation-graph {
-    width: 100%; height: 100%;
-    position: absolute; top: 0; left: 0; z-index: 1;
-}
-
-/* 浮动添加按钮 */
+/* 3. 浮动操作按钮 (FAB) */
 #show-form-btn {
-    position: fixed;
-    bottom: 30px; right: 30px;
-    width: 60px; height: 60px;
-    background-color: #007bff; color: white;
+    position: fixed; bottom: 40px; right: 40px;
+    width: 56px; height: 56px;
+    background: var(--system-blue);
     border: none; border-radius: 50%;
-    font-size: 36px; line-height: 56px; text-align: center;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-    cursor: pointer;
-    z-index: 999; /* 确保在关系图之上 */
-    transition: transform 0.2s ease, background-color 0.2s;
-}
-#show-form-btn:hover {
-    transform: scale(1.1);
-    background-color: #0056b3;
-}
-
-/* 表单和简介卡片的遮罩层 */
-#form-wrapper, #bio-card, #details-modal {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background-color: rgba(0, 0, 0, 0.6);
+    box-shadow: 0 8px 20px rgba(0, 122, 255, 0.3);
+    cursor: pointer; z-index: 999;
     display: flex; justify-content: center; align-items: center;
-    z-index: 1000; /* 比主应用高，比激活码界面低 */
+    color: white;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+}
+#show-form-btn:hover { transform: scale(1.1); box-shadow: 0 10px 25px rgba(0, 122, 255, 0.4); }
+#show-form-btn:active { transform: scale(0.95); }
+
+/* 4. 通用弹窗容器 (Modal Wrapper) */
+.modal-wrapper {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    display: flex; justify-content: center; align-items: center;
+    z-index: 1000;
+    background-color: rgba(0, 0, 0, 0.2);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    opacity: 0;
     transition: opacity 0.3s ease;
 }
+.modal-wrapper:not(.hidden) { opacity: 1; }
 
-/* 表单和卡片内容区的通用动画 */
-.form-container, .card-content {
-    background: #fff; padding: 25px; border-radius: 12px;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.1); width: 90%; max-width: 420px;
-    position: relative; transform: scale(1); transition: transform 0.3s ease;
+.modal-content {
+    background: var(--card-bg);
+    border-radius: var(--border-radius-card);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+    width: 90%; max-width: 480px;
+    opacity: 0;
+    transform: scale(0.9);
+    transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.modal-wrapper:not(.hidden) .modal-content {
+    opacity: 1;
+    transform: scale(1);
 }
 
-#form-wrapper.hidden .form-container,
-#bio-card.hidden .card-content,
-#details-modal.hidden .modal-content-wrapper { /* 假设 details-modal 也有一个包裹内容的元素 */
-    transform: scale(0.95);
+/* 5. 弹窗头部与关闭按钮 */
+.modal-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--system-gray-light);
+    display: flex; justify-content: space-between; align-items: center;
 }
-
+.modal-header h3, .modal-header h2 {
+    margin: 0; font-size: 18px; font-weight: 600;
+}
 .close-button {
-    position: absolute; top: 10px; right: 15px; font-size: 28px;
-    color: #999; cursor: pointer; background: none; border: none; padding: 0;
+    background: var(--system-gray-light);
+    border: none; border-radius: 50%;
+    width: 28px; height: 28px;
+    font-size: 16px; font-weight: 600;
+    color: var(--system-gray);
+    cursor: pointer;
+    display: flex; justify-content: center; align-items: center;
+    transition: background-color 0.2s;
 }
-.close-button:hover { color: #333; }
+.close-button:hover { background-color: #e5e5ea; }
 
-/* ... (其他所有表单、卡片、模态框的详细样式和之前一样，这里省略) ... */
-/* 确保你的 style.css 包含了所有弹窗的样式 */
+/* 6. 表单样式 (#form-wrapper) */
+#add-form { padding: 20px; }
+#add-form input[type="text"], #add-form textarea, #add-form select {
+    width: 100%; padding: 12px; margin-bottom: 16px; box-sizing: border-box;
+    border-radius: var(--border-radius-btn);
+    border: 1px solid var(--border-color);
+    background-color: var(--system-gray-light);
+    font-size: 16px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+#add-form input[type="text"]:focus, #add-form textarea:focus {
+    outline: none;
+    border-color: var(--system-blue);
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.2);
+}
+#add-form label { display: block; margin-bottom: 8px; font-weight: 500; color: var(--text-secondary); }
+#image-preview {
+    width: 100px; height: 100px; border-radius: 50%;
+    margin: 10px auto 20px; border: 3px solid white;
+    object-fit: cover; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+/* 7. 简介卡片样式 (#bio-card) */
+.card-content { padding: 20px; }
+.card-header {
+    text-align: center;
+    margin-bottom: 16px;
+}
+#bio-avatar {
+    width: 90px; height: 90px;
+    border-radius: 50%; object-fit: cover;
+    border: 4px solid var(--card-bg);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    margin: -70px auto 10px; /* 让头像浮在卡片之上 */
+    display: block;
+}
+#bio-name { margin: 0; font-size: 24px; font-weight: 700; }
+#bio-text {
+    font-size: 16px; color: var(--text-secondary); line-height: 1.6;
+    text-align: center; white-space: pre-wrap; margin-bottom: 24px;
+}
+
+/* 8. 通用操作按钮样式 */
+.card-actions, .modal-footer {
+    display: flex; flex-direction: column; gap: 12px;
+}
+.action-btn {
+    width: 100%; padding: 14px;
+    border-radius: var(--border-radius-btn);
+    border: none; font-size: 16px; font-weight: 600;
+    cursor: pointer;
+    background-color: var(--system-gray-light);
+    color: var(--system-blue);
+    transition: transform 0.1s, background-color 0.2s;
+}
+.action-btn:active { transform: scale(0.98); }
+.action-btn.primary, #save-node-btn {
+    background-color: var(--system-blue);
+    color: white;
+}
+.action-btn.danger { color: var(--system-red); }
+
+/* 9. 详细档案弹窗 (#details-modal) */
+.details-container {
+    height: 85vh; width: 95%; max-width: 800px;
+    display: flex; flex-direction: column;
+}
+.modal-body { flex-grow: 1; overflow-y: auto; padding: 20px; }
+.modal-footer { padding: 16px 20px; border-top: 1px solid var(--system-gray-light); }
+
+.detail-entry {
+    display: grid; grid-template-columns: 120px 1fr;
+    align-items: flex-start; gap: 15px;
+    margin-bottom: 16px;
+}
+.detail-entry-label {
+    font-weight: 500; color: var(--text-secondary);
+    padding-top: 12px; text-align: right;
+}
+.detail-entry-value textarea { min-height: 80px; }
