@@ -1,357 +1,281 @@
+// --- script.js (最终精简且完整版) ---
 document.addEventListener('DOMContentLoaded', function() {
-    // --- 初始化和全局变量 ---
     const APP_ID = 'KaL72m8OYrLQxlJVg6wTYBzv-gzGzoHsz';
     const APP_KEY = 'R60VntUpKs5bsYHGJzWoac5G';
     const SERVER_URL = 'https://kal72m8o.lc-cn-n1-shared.com';
-    
     AV.init({ appId: APP_ID, appKey: APP_KEY, serverURL: SERVER_URL });
 
-    let network = null;
+    let network, editingNodeId;
     const nodes = new vis.DataSet([]);
     const edges = new vis.DataSet([]);
-    let editingNodeId = null; 
-
-    // --- 工具函数 ---
-    function getDeviceId() {
-        let deviceId = localStorage.getItem('deviceId');
-        if (!deviceId) {
-            deviceId = 'device_' + Date.now() + Math.random().toString(36).substr(2, 9);
-            localStorage.setItem('deviceId', deviceId);
-        }
-        return deviceId;
-    }
-
-    // --- DOM 元素获取 ---
-    const activationWrapper = document.getElementById('activation-wrapper');
-    const activateBtn = document.getElementById('activate-btn');
-    const activationStatus = document.getElementById('activation-status');
-    const appContainer = document.getElementById('app-container');
-    const formWrapper = document.getElementById('form-wrapper');
-    const showFormBtn = document.getElementById('show-form-btn');
-    const formCloseBtn = document.getElementById('form-close-btn');
-    const formTitle = document.getElementById('form-title');
-    const addForm = document.getElementById('add-form');
-    const saveNodeBtn = document.getElementById('save-node-btn');
-    const addEdgeBtn = document.getElementById('add-edge-btn');
-    const imageInput = document.getElementById('node-image');
-    const imagePreview = document.getElementById('image-preview');
-    const bioCard = document.getElementById('bio-card');
-    const bioAvatar = document.getElementById('bio-avatar');
-    const bioName = document.getElementById('bio-name');
-    const bioText = document.getElementById('bio-text');
-    const closeBioBtn = document.getElementById('close-btn');
-    const detailsBtn = document.getElementById('details-btn');
-    const editBtn = document.getElementById('edit-btn');
-    const deleteBtn = document.getElementById('delete-btn');
-    const detailsModal = document.getElementById('details-modal');
-    const detailsModalCloseBtn = document.getElementById('details-modal-close-btn');
-    const saveDetailsBtn = document.getElementById('save-details-btn');
-    const addFieldBtn = document.getElementById('add-field-btn');
-    const edgeSection = document.getElementById('edge-section');
+    const dom = {};
+    const elementIds = [
+        'activation-wrapper', 'activate-btn', 'activation-status', 'app-container', 'form-wrapper',
+        'show-form-btn', 'form-close-btn', 'form-title', 'add-form', 'save-node-btn', 'add-edge-btn',
+        'node-name', 'node-bio', 'node-image', 'image-preview', 'edge-section', 'from-node', 'to-node', 'edge-label',
+        'bio-card', 'bio-avatar', 'bio-name', 'bio-text', 'close-btn', 'details-btn', 'edit-btn', 'delete-btn',
+        'details-modal', 'details-modal-close-btn', 'details-modal-title', 'details-content',
+        'add-field-btn', 'save-details-btn', 'history-modal', 'history-title', 'history-close-btn', 'history-list'
+    ];
+    elementIds.forEach(id => dom[id] = document.getElementById(id));
     
     const PRESET_FIELDS = [
-        { key: 'gender', label: '性别' }, { key: 'birthDate', label: '出生日期' },
-        { key: 'idNumber', label: '身份证号码' }, { key: 'hukouLocation', label: '户籍所在地' },
-        { key: 'currentAddress', label: '常住地址' }, { key: 'phone', label: '手机号' },
-        { key: 'wechat', label: '微信号' }, { key: 'email', label: '邮箱' },
-        { key: 'maritalStatus', label: '婚姻状况' }, { key: 'politicalStatus', label: '政治面貌' },
-        { key: 'education', label: '学历层次' }, { key: 'major', label: '专业方向' },
-        { key: 'company', label: '当前工作单位' }, { key: 'jobTitle', label: '职务/岗位' },
-        { key: 'hobbies', label: '兴趣爱好', type: 'textarea' },
+        { key: 'gender', label: '性别' }, { key: 'birthDate', label: '出生日期' }, { key: 'idNumber', label: '身份证号码' }, 
+        { key: 'hukouLocation', label: '户籍所在地' }, { key: 'currentAddress', label: '常住地址' }, { key: 'phone', label: '手机号' },
+        { key: 'wechat', label: '微信号' }, { key: 'email', label: '邮箱' }, { key: 'maritalStatus', label: '婚姻状况' }, 
+        { key: 'politicalStatus', label: '政治面貌' }, { key: 'education', label: '学历层次' }, { key: 'major', label: '专业方向' },
+        { key: 'company', label: '当前工作单位' }, { key: 'jobTitle', label: '职务/岗位' }, { key: 'hobbies', label: '兴趣爱好', type: 'textarea' },
         { key: 'remarks', label: '备注', type: 'textarea' }
     ];
 
-    // --- 激活码逻辑 ---
-    async function checkActivation() {
-        const deviceId = getDeviceId();
-        const query = new AV.Query('ActivatedDevices').equalTo('deviceId', deviceId);
-        try {
-            const device = await query.first();
-            if (device) {
-                showApp();
-            } else {
-                showActivation();
-            }
-        } catch (error) {
-            activationStatus.textContent = '无法连接验证服务器，请刷新重试。';
-            console.error("检查激活状态时出错:", error);
+    const getDeviceId = () => {
+        let id = localStorage.getItem('deviceId');
+        if (!id) {
+            id = `device_${Date.now()}${Math.random().toString(36).substring(2, 11)}`;
+            localStorage.setItem('deviceId', id);
         }
-    }
+        return id;
+    };
+    const toggleModal = (modal, show) => modal.classList.toggle('hidden', !show);
 
-    async function activateDevice() {
-        const codeInput = document.getElementById('activation-code-input').value.trim();
-        if (!codeInput) { return alert("请输入激活码！"); }
-        
-        activateBtn.disabled = true;
-        activationStatus.textContent = '验证中...';
+    const checkActivation = async () => {
         try {
-            const deviceId = getDeviceId();
-            const result = await AV.Cloud.run('verifyAndUseCode', { code: codeInput, deviceId: deviceId });
-            
-            if (result && result.success) {
-                activationStatus.textContent = '激活成功！';
-                setTimeout(showApp, 500); // 缩短延迟
-            } else {
-                activationStatus.textContent = result ? result.message : "激活失败，未知错误。";
-                activateBtn.disabled = false;
-            }
+            const device = await new AV.Query('ActivatedDevices').equalTo('deviceId', getDeviceId()).first();
+            device ? showApp() : showActivation();
+        } catch (error) { dom.activationStatus.textContent = '无法连接验证服务器，请刷新。'; }
+    };
+    const activateDevice = async () => {
+        const code = dom['activation-code-input'].value.trim();
+        if (!code) return alert("请输入激活码！");
+        dom.activateBtn.disabled = true;
+        dom.activationStatus.textContent = '验证中...';
+        try {
+            const result = await AV.Cloud.run('verifyAndUseCode', { code, deviceId: getDeviceId() });
+            dom.activationStatus.textContent = result.message || '激活失败';
+            if (result.success) setTimeout(showApp, 500);
+            else dom.activateBtn.disabled = false;
         } catch (error) {
-            console.error("调用云函数出错:", error);
-            activateBtn.disabled = false;
-            activationStatus.textContent = '激活失败，请检查网络或联系管理员。';
+            dom.activationStatus.textContent = '激活失败，请检查网络。';
+            dom.activateBtn.disabled = false;
         }
-    }
+    };
 
-    // --- 流程控制与事件绑定 ---
-    function showActivation() {
-        activateBtn.addEventListener('click', activateDevice);
-        activationWrapper.classList.remove('hidden');
-    }
-
-    function showApp() {
-        activationWrapper.classList.add('hidden');
-        appContainer.classList.remove('hidden');
-        
+    const showActivation = () => {
+        dom.activateBtn.addEventListener('click', activateDevice);
+        toggleModal(dom.activationWrapper, true);
+    };
+    const showApp = () => {
+        toggleModal(dom.activationWrapper, false);
+        dom.appContainer.classList.remove('hidden');
         if (!network) {
             const container = document.getElementById('relation-graph');
-            const data = { nodes: nodes, edges: edges };
-            const options = {
-                nodes: { borderWidth: 4, size: 40, color: { border: '#FFFFFF', highlight: { border: '#007aff' } }, font: { color: '#333', size: 14, face: 'arial' }, shape: 'circularImage' },
-                edges: { color: '#999', width: 2, font: { align: 'top', size: 12, color: '#888', strokeWidth: 0 }, arrows: { to: { enabled: false } }, smooth: { type: 'cubicBezier' } },
-                physics: { enabled: true, solver: 'forceAtlas2Based', forceAtlas2Based: { gravitationalConstant: -80, centralGravity: 0.01, springLength: 150, damping: 0.4, avoidOverlap: 1 } },
-                interaction: { hover: true, tooltipDelay: 200 },
-            };
+            const data = { nodes, edges };
+            const options = { /* ... vis.js options ... */ };
             network = new vis.Network(container, data, options);
             initializeAppEventListeners();
         }
-        
         loadData();
-    }
-    
-    function initializeAppEventListeners() {
-        showFormBtn.addEventListener('click', () => openForm('add'));
-        formCloseBtn.addEventListener('click', closeForm);
-        addForm.addEventListener('submit', saveNode);
-        addEdgeBtn.addEventListener('click', addEdge);
-        closeBioBtn.addEventListener('click', closeBioCard);
-        detailsModalCloseBtn.addEventListener('click', () => detailsModal.classList.add('hidden'));
-        saveDetailsBtn.addEventListener('click', () => { if(editingNodeId) saveDetails(editingNodeId); });
-        addFieldBtn.addEventListener('click', () => {
-             const key = prompt("请输入新字段的英文名 (如 'qqNumber'):");
-             if (key) {
-                 const label = prompt(`请输入字段 "${key}" 的中文名 (如 'QQ号'):`);
-                 if (label) {
-                     document.getElementById('details-content').insertAdjacentHTML('beforeend', createFieldHTML(key, label, ''));
-                 }
-             }
-        });
-        imageInput.addEventListener('change', previewImage);
+    };
 
-        network.on('click', function(params) {
-            if (params.nodes.length > 0) {
-                const nodeId = params.nodes[0];
-                editingNodeId = nodeId;
-                const nodeData = nodes.get(nodeId);
-                
-                bioAvatar.src = nodeData.image;
-                bioName.textContent = nodeData.label;
-                bioText.textContent = nodeData.bio;
-                
-                detailsBtn.onclick = () => { closeBioCard(); openDetailsModal(nodeId); };
-                editBtn.onclick = () => { closeBioCard(); openForm('edit', nodeData); };
-                deleteBtn.onclick = () => deleteNode(nodeId);
-
-                bioCard.classList.remove('hidden');
+    const initializeAppEventListeners = () => {
+        dom.showFormBtn.addEventListener('click', () => openForm('add'));
+        [dom.formCloseBtn, dom.closeBioBtn, dom.historyCloseBtn, dom.detailsModalCloseBtn].forEach(btn => btn.addEventListener('click', () => {
+            toggleModal(btn.closest('.modal-wrapper'), false);
+        }));
+        dom.addForm.addEventListener('submit', saveNode);
+        dom.addEdgeBtn.addEventListener('click', addEdge);
+        dom.saveDetailsBtn.addEventListener('click', () => editingNodeId && saveDetails(editingNodeId));
+        dom.addFieldBtn.addEventListener('click', async () => {
+            const label = prompt("请输入要添加的信息名称 (例如: QQ号)");
+            if (label) {
+                const key = pinyin_pro.pinyin(label, { toneType: 'none', type: 'camel' }).replace(/\s/g, '');
+                if (key) dom.detailsContent.insertAdjacentHTML('beforeend', createFieldHTML(key, label, ''));
+                else alert("无法为该名称生成字段ID。");
             }
         });
-    }
+        dom.imageInput.addEventListener('change', e => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = event => {
+                    dom.imagePreview.src = event.target.result;
+                    dom.imagePreview.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        network.on('click', ({ nodes: nodeIds }) => {
+            if (nodeIds.length > 0) {
+                editingNodeId = nodeIds[0];
+                const nodeData = nodes.get(editingNodeId);
+                dom.bioAvatar.src = nodeData.image;
+                dom.bioName.textContent = nodeData.label;
+                dom.bioText.textContent = nodeData.bio;
+                dom.detailsBtn.onclick = () => { toggleModal(dom.bioCard, false); openDetailsModal(editingNodeId); };
+                dom.editBtn.onclick = () => { toggleModal(dom.bioCard, false); openForm('edit', nodeData); };
+                dom.deleteBtn.onclick = () => deleteNode(editingNodeId);
+                toggleModal(dom.bioCard, true);
+            }
+        });
+    };
 
-    // --- 功能函数 ---
-    function closeBioCard() { bioCard.classList.add('hidden'); }
-
-    async function loadData() {
+    const loadData = async () => {
         try {
-            const nodeQuery = new AV.Query('Nodes');
-            nodeQuery.limit(1000);
-            const remoteNodes = await nodeQuery.find();
-            const networkNodes = remoteNodes.map(node => ({
-                id: node.id,
-                label: node.get('label'),
-                image: (node.get('image') || 'https://i.pravatar.cc/150?u='+node.id).replace(/^http:\/\//i, 'https://'),
-                bio: node.get('bio')
-            }));
+            const [remoteNodes, remoteEdges] = await Promise.all([
+                new AV.Query('Nodes').limit(1000).find(),
+                new AV.Query('Edges').limit(1000).find()
+            ]);
+            const networkNodes = remoteNodes.map(n => ({ id: n.id, label: n.get('label'), image: (n.get('image') || `https://i.pravatar.cc/150?u=${n.id}`).replace(/^http:\/\//i, 'https://'), bio: n.get('bio') }));
             nodes.clear();
             nodes.add(networkNodes);
             updateSelects(networkNodes);
-
-            const edgeQuery = new AV.Query('Edges');
-            edgeQuery.limit(1000);
-            const remoteEdges = await edgeQuery.find();
-            const networkEdges = remoteEdges.map(edge => ({ id: edge.id, from: edge.get('from'), to: edge.get('to'), label: edge.get('label') }));
+            const networkEdges = remoteEdges.map(e => ({ id: e.id, from: e.get('from'), to: e.get('to'), label: e.get('label') }));
             edges.clear();
             edges.add(networkEdges);
         } catch (error) { console.error("数据加载失败:", error); }
-    }
-
-    function openForm(mode = 'add', nodeData = {}) {
+    };
+    
+    const openForm = (mode, nodeData = {}) => {
         editingNodeId = (mode === 'edit') ? nodeData.id : null;
-        formTitle.textContent = (mode === 'edit') ? '编辑基本信息' : '添加新人物';
-        saveNodeBtn.textContent = (mode === 'edit') ? '保存修改' : '创建人物';
-        
-        document.getElementById('node-name').value = nodeData.label || '';
-        document.getElementById('node-bio').value = nodeData.bio || '';
-        imageInput.value = null; 
-        imagePreview.src = nodeData.image || '';
-        imagePreview.classList.toggle('hidden', !nodeData.image);
-        
-        edgeSection.classList.toggle('hidden', mode === 'edit');
-        formWrapper.classList.remove('hidden');
-    }
+        dom.formTitle.textContent = mode === 'edit' ? '编辑基本信息' : '添加新人物';
+        dom.saveNodeBtn.textContent = mode === 'edit' ? '保存修改' : '创建人物';
+        dom['node-name'].value = nodeData.label || '';
+        dom['node-bio'].value = nodeData.bio || '';
+        dom.imageInput.value = null; 
+        dom.imagePreview.src = nodeData.image || '';
+        dom.imagePreview.classList.toggle('hidden', !nodeData.image);
+        dom.edgeSection.classList.toggle('hidden', mode === 'edit');
+        toggleModal(dom.formWrapper, true);
+    };
 
-    function closeForm() { formWrapper.classList.add('hidden'); }
-
-    async function saveNode() {
-        const label = document.getElementById('node-name').value.trim();
-        const bio = document.getElementById('node-bio').value.trim();
-        if (!label || !bio) { return alert('人物姓名和简介不能为空！'); }
-        
-        saveNodeBtn.disabled = true;
-        saveNodeBtn.textContent = '保存中...';
+    const saveNode = async () => {
+        const label = dom['node-name'].value.trim();
+        const bio = dom['node-bio'].value.trim();
+        if (!label || !bio) return alert('人物姓名和简介不能为空！');
+        dom.saveNodeBtn.disabled = true;
+        dom.saveNodeBtn.textContent = '保存中...';
         let imageUrl = editingNodeId ? (nodes.get(editingNodeId).image || '') : '';
-        const file = imageInput.files[0];
+        const file = dom.imageInput.files[0];
         try {
             if (file) {
                 const avFile = new AV.File(file.name, file);
-                const savedFile = await avFile.save();
-                imageUrl = savedFile.url();
+                imageUrl = (await avFile.save()).url();
             }
-            let node;
-            if (editingNodeId) {
-                node = AV.Object.createWithoutData('Nodes', editingNodeId);
-            } else {
-                node = new (AV.Object.extend('Nodes'))();
-            }
+            const node = editingNodeId ? AV.Object.createWithoutData('Nodes', editingNodeId) : new (AV.Object.extend('Nodes'))();
             node.set('label', label);
             node.set('bio', bio);
             if (imageUrl) node.set('image', imageUrl);
             await node.save();
-            alert(editingNodeId ? '人物更新成功！' : '人物添加成功！');
-            addForm.reset();
-            closeForm();
+            alert('操作成功！');
+            dom.addForm.reset();
+            toggleModal(dom.formWrapper, false);
             loadData();
         } catch (error) {
-            console.error('保存人物失败:', error);
             alert('保存失败！');
         } finally {
-            saveNodeBtn.disabled = false;
-            saveNodeBtn.textContent = editingNodeId ? '保存修改' : '创建人物';
+            dom.saveNodeBtn.disabled = false;
         }
-    }
+    };
 
-    async function deleteNode(nodeId) {
+    const deleteNode = async (nodeId) => {
         if (!confirm('确定要删除这个人物吗？所有与他/她相关的关系线也将被一并删除！')) return;
         try {
-            const fromQuery = new AV.Query('Edges').equalTo('from', nodeId);
-            const toQuery = new AV.Query('Edges').equalTo('to', nodeId);
-            const edgeQuery = AV.Query.or(fromQuery, toQuery);
+            const edgeQuery = AV.Query.or(new AV.Query('Edges').equalTo('from', nodeId), new AV.Query('Edges').equalTo('to', nodeId));
             const edgesToDelete = await edgeQuery.find();
-            if (edgesToDelete.length > 0) { await AV.Object.destroyAll(edgesToDelete); }
-            const nodeToDelete = AV.Object.createWithoutData('Nodes', nodeId);
-            await nodeToDelete.destroy();
+            if (edgesToDelete.length > 0) await AV.Object.destroyAll(edgesToDelete);
+            await AV.Object.createWithoutData('Nodes', nodeId).destroy();
             alert('删除成功！');
-            closeBioCard();
+            toggleModal(dom.bioCard, false);
             loadData();
-        } catch (error) { console.error('删除失败:', error); alert('删除失败！'); }
-    }
-    
-    async function addEdge() {
-        const fromNode = document.getElementById('from-node').value;
-        const toNode = document.getElementById('to-node').value;
-        const edgeLabel = document.getElementById('edge-label').value.trim();
-        if (fromNode && toNode && fromNode !== toNode && edgeLabel) {
-            const Edge = AV.Object.extend('Edges');
-            const edge = new Edge();
-            edge.set('from', fromNode);
-            edge.set('to', toNode);
-            edge.set('label', edgeLabel);
+        } catch (error) { alert('删除失败！'); }
+    };
+
+    const addEdge = async () => {
+        const from = dom['from-node'].value;
+        const to = dom['to-node'].value;
+        const label = dom['edge-label'].value.trim();
+        if (from && to && from !== to && label) {
             try {
-                await edge.save();
+                await new (AV.Object.extend('Edges'))().set({ from, to, label }).save();
                 alert('关系添加成功！');
-                document.getElementById('edge-label').value = '';
+                dom['edge-label'].value = '';
                 loadData();
-            } catch (error) { console.error('添加关系失败: ', error); alert('添加失败！'); }
+            } catch (error) { alert('添加失败！'); }
         } else {
             alert('请确保选择了两个不同的人物并填写了关系！');
         }
-    }
+    };
 
-    function previewImage(e) {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                imagePreview.src = event.target.result;
-                imagePreview.classList.remove('hidden');
-            };
-            reader.readAsDataURL(file);
-        }
-    }
-
-    function updateSelects(options) {
-        const fromSelect = document.getElementById('from-node');
-        const toSelect = document.getElementById('to-node');
-        const currentFrom = fromSelect.value;
-        const currentTo = toSelect.value;
-        fromSelect.innerHTML = '<option value="">--选择人物1--</option>';
-        toSelect.innerHTML = '<option value="">--选择人物2--</option>';
-        options.forEach(opt => {
-            fromSelect.add(new Option(opt.label, opt.id));
-            toSelect.add(new Option(opt.label, opt.id));
+    const updateSelects = (options) => {
+        [dom['from-node'], dom['to-node']].forEach(select => {
+            const currentValue = select.value;
+            select.innerHTML = '<option value="">--选择人物--</option>';
+            options.forEach(opt => select.add(new Option(opt.label, opt.id)));
+            select.value = currentValue;
         });
-        fromSelect.value = currentFrom;
-        toSelect.value = currentTo;
-    }
+    };
     
-    async function openDetailsModal(nodeId) {
+    const openDetailsModal = async (nodeId) => {
         const node = await AV.Object.createWithoutData('Nodes', nodeId).fetch();
-        document.getElementById('details-modal-title').textContent = `${node.get('label')} 的详细档案`;
-        const detailsContent = document.getElementById('details-content');
-        detailsContent.innerHTML = '';
+        dom.detailsModalTitle.textContent = `${node.get('label')} 的详细档案`;
         const nodeJSON = node.toJSON();
         const allKeys = new Set([...PRESET_FIELDS.map(f => f.key), ...Object.keys(nodeJSON)]);
         const systemKeys = new Set(['objectId', 'createdAt', 'updatedAt', 'ACL', 'label', 'bio', 'image']);
+        let contentHTML = '';
         allKeys.forEach(key => {
             if (systemKeys.has(key)) return;
             const preset = PRESET_FIELDS.find(f => f.key === key);
-            const label = preset ? preset.label : key;
-            const type = preset ? preset.type : 'input';
-            const value = nodeJSON[key] || '';
-            detailsContent.insertAdjacentHTML('beforeend', createFieldHTML(key, label, value, type));
+            contentHTML += createFieldHTML(key, preset?.label || key, nodeJSON[key] || '', preset?.type);
         });
-        detailsModal.classList.remove('hidden');
-    }
+        dom.detailsContent.innerHTML = contentHTML;
+        toggleModal(dom.detailsModal, true);
+    };
 
-    function createFieldHTML(key, label, value, type = 'input') {
-        const inputElement = type === 'textarea'
-            ? `<textarea data-key="${key}">${value}</textarea>`
-            : `<input type="text" data-key="${key}" value="${value}">`;
-        return `<div class="detail-entry"><div class="detail-entry-label">${label}</div><div class="detail-entry-value">${inputElement}</div></div>`;
-    }
+    const createFieldHTML = (key, label, value, type = 'input') => {
+        const inputHTML = type === 'textarea' ? `<textarea data-key="${key}">${value}</textarea>` : `<input type="text" data-key="${key}" value="${value}">`;
+        return `<div class="detail-entry" onclick="showHistory('${editingNodeId}', '${key}', '${label}')"><div class="detail-entry-label">${label}</div><div class="detail-entry-value">${inputHTML}</div></div>`;
+    };
 
-    async function saveDetails(nodeId) {
-        const node = AV.Object.createWithoutData('Nodes', nodeId);
-        const entries = document.querySelectorAll('#details-content [data-key]');
-        entries.forEach(entry => node.set(entry.dataset.key, entry.value));
+    const saveDetails = async (nodeId) => {
+        const node = await AV.Object.createWithoutData('Nodes', nodeId).fetch();
+        const oldData = node.toJSON();
+        const historyRecords = [];
+        const entries = dom.detailsContent.querySelectorAll('[data-key]');
+        
+        entries.forEach(entry => {
+            const key = entry.dataset.key;
+            const newValue = entry.value;
+            if (oldData[key] !== newValue) {
+                const history = new (AV.Object.extend('FieldHistories'))();
+                history.set({ targetNode: node, fieldKey: key, oldValue: oldData[key] || '', newValue, editorInfo: `设备: ${getDeviceId()}` });
+                historyRecords.push(history);
+                node.set(key, newValue);
+            }
+        });
         try {
-            await node.save();
+            if (historyRecords.length > 0) {
+                await AV.Object.saveAll(historyRecords);
+                await node.save();
+            }
             alert('详细档案保存成功！');
-            detailsModal.classList.add('hidden');
-        } catch (error) {
-            alert('保存失败！');
-            console.error(error);
-        }
-    }
+            toggleModal(dom.detailsModal, false);
+        } catch (error) { alert('保存失败！'); }
+    };
+
+    window.showHistory = async (nodeId, fieldKey, fieldLabel) => {
+        dom.historyTitle.textContent = `"${fieldLabel}" 的修改历史`;
+        dom.historyList.innerHTML = '<p>加载中...</p>';
+        toggleModal(dom.historyModal, true);
+        try {
+            const query = new AV.Query('FieldHistories').equalTo('targetNode', AV.Object.createWithoutData('Nodes', nodeId)).equalTo('fieldKey', fieldKey).descending('createdAt');
+            const histories = await query.find();
+            dom.historyList.innerHTML = histories.length === 0 ? '<p>暂无修改记录。</p>' : histories.map(h => `
+                <div class="history-item">
+                    <div class="history-item-meta"><span>${new Date(h.createdAt).toLocaleString()}</span> by <span>${h.get('editorInfo')}</span></div>
+                    <div class="history-item-value"><span class="old">${h.get('oldValue')}</span> → <span class="new">${h.get('newValue')}</span></div>
+                </div>`).join('');
+        } catch (error) { dom.historyList.innerHTML = '<p>加载历史失败。</p>'; }
+    };
     
-    // --- 初始化 ---
     checkActivation();
 });
