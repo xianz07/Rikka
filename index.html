@@ -3,49 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>可编辑的人物关系图</title>
+    <title>私密个人档案系统</title>
     <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-    <!-- 关系图容器 -->
-    <div id="relation-graph"></div>
-
-    <!-- 浮动按钮 -->
-    <button id="show-form-btn" title="添加新人物">+</button>
-
-    <!-- 表单容器 (默认隐藏) -->
-    <div id="form-wrapper" class="hidden">
+    <!-- 激活码输入遮罩层 -->
+    <div id="activation-wrapper">
         <div class="form-container">
-            <span id="form-close-btn" class="close-button">×</span>
-            <h3 id="form-title">添加新人物</h3>
-            <form id="add-form" onsubmit="return false;">
-                <!-- 人物信息 -->
-                <div class="form-section">
-                    <input type="text" id="node-name" placeholder="人物姓名" required>
-                    <textarea id="node-bio" placeholder="人物简介" required rows="3"></textarea>
-                    <label for="node-image">上传头像 (可选):</label>
-                    <input type="file" id="node-image" accept="image/*">
-                    <img id="image-preview" src="" alt="图片预览" class="hidden">
-                </div>
-                <!-- 关系信息 -->
-                <div class="form-section" id="edge-section">
-                    <hr>
-                    <h4>添加或修改关系</h4>
-                    <select id="from-node"></select>
-                    <span>与</span>
-                    <select id="to-node"></select>
-                    <input type="text" id="edge-label" placeholder="关系 (如: 师徒)">
-                    <button type="button" id="add-edge-btn">添加关系</button>
-                </div>
-                <!-- 主操作按钮 -->
-                <button type="submit" id="save-node-btn">保存人物</button>
-            </form>
+            <h3>请输入激活码</h3>
+            <input type="text" id="activation-code-input" placeholder="输入激活码">
+            <button id="activate-btn">激活</button>
+            <p id="activation-status"></p>
         </div>
     </div>
 
-    <!-- 简介卡片 (默认隐藏) -->
+    <!-- 主应用界面 (默认隐藏) -->
+    <div id="app-container" class="hidden">
+        <!-- 关系图容器 -->
+        <div id="relation-graph"></div>
+        <!-- 浮动按钮 -->
+        <button id="show-form-btn" title="添加新人物">+</button>
+    </div>
+
+    <!-- 添加/编辑人物的基本信息表单 -->
+    <div id="form-wrapper" class="hidden">
+        <!-- ... 和之前版本类似，但做了简化 ... -->
+    </div>
+
+    <!-- 简介卡片 (点击头像后的小弹窗) -->
     <div id="bio-card" class="hidden">
         <div class="card-content">
             <span id="close-btn" class="close-button">×</span>
@@ -53,8 +39,26 @@
             <h2 id="bio-name"></h2>
             <p id="bio-text"></p>
             <div class="card-actions">
-                <button id="edit-btn">编辑</button>
+                <button id="details-btn">查看/编辑详细档案</button>
+                <button id="edit-btn">编辑基本信息</button>
                 <button id="delete-btn">删除</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 全屏详细档案弹窗 (核心新功能) -->
+    <div id="details-modal" class="hidden">
+        <div class="modal-header">
+            <h2 id="details-modal-title">详细档案</h2>
+            <button id="details-modal-close-btn" class="close-button">×</button>
+        </div>
+        <div class="modal-body">
+            <div id="details-content">
+                <!-- 档案信息将通过JS动态生成在这里 -->
+            </div>
+            <div class="details-actions">
+                <button id="add-field-btn">添加新字段</button>
+                <button id="save-details-btn">保存所有修改</button>
             </div>
         </div>
     </div>
@@ -62,6 +66,5 @@
     <!-- SDK 和脚本 -->
     <script src="https://cdn.jsdelivr.net/npm/leancloud-storage/dist/av-min.js"></script>
     <script src="script.js"></script>
-
 </body>
 </html>
