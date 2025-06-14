@@ -77,7 +77,31 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!network) {
             const container = document.getElementById('relation-graph');
             const data = { nodes: nodes, edges: edges };
-            const options = { /* ... 选项 ... */ };
+            const options = {
+    nodes: { 
+        borderWidth: 4, 
+        size: 40, 
+        color: { border: '#FFFFFF', highlight: { border: '#007bff' } }, 
+        font: { color: '#333', size: 14, face: 'arial' }, 
+        shape: 'circularImage' 
+    },
+    edges: { 
+        color: '#999', 
+        width: 2, 
+        font: { align: 'top', size: 12, color: '#888', strokeWidth: 0 }, 
+        arrows: { to: { enabled: false } }, 
+        smooth: { type: 'cubicBezier' } 
+    },
+    physics: { 
+        enabled: true, 
+        solver: 'forceAtlas2Based', 
+        forceAtlas2Based: { gravitationalConstant: -80, centralGravity: 0.01, springLength: 150, damping: 0.4, avoidOverlap: 1 } 
+    },
+    interaction: { 
+        hover: true, 
+        tooltipDelay: 200 
+    },
+};
             network = new vis.Network(container, data, options);
             initializeEventListeners(); // 在 network 创建后再绑定事件
         }
