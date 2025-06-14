@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人物关系图</title>
+    <!-- 引入 vis-network 库 -->
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <!-- 引入我们自己的样式文件 -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- 这是关系图的容器 -->
+    <div id="relation-graph"></div>
+
+    <!-- 这是点击头像后显示的简介卡片 (默认隐藏) -->
+    <div id="bio-card" class="hidden">
+        <div class="card-content">
+            <span id="close-btn">&times;</span>
+            <img id="bio-avatar" src="" alt="Avatar">
+            <h2 id="bio-name"></h2>
+            <p id="bio-text"></p>
+        </div>
+    </div>
+
+    <!-- 引入我们自己的脚本文件 -->
+    <script src="script.js"></script>
+
+</body>
+</html>
