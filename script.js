@@ -1,5 +1,5 @@
-// --- script.js (最终精简且完整版 v2) ---
 document.addEventListener('DOMContentLoaded', function() {
+    // --- 初始化和全局变量 ---
     const APP_ID = 'KaL72m8OYrLQxlJVg6wTYBzv-gzGzoHsz';
     const APP_KEY = 'R60VntUpKs5bsYHGJzWoac5G';
     const SERVER_URL = 'https://kal72m8o.lc-cn-n1-shared.com';
@@ -9,13 +9,17 @@ document.addEventListener('DOMContentLoaded', function() {
     const nodes = new vis.DataSet([]);
     const edges = new vis.DataSet([]);
     const dom = {};
+
+    // ✅ 修复点：在这里加入了丢失的 'activation-code-input' ID
     const elementIds = [
-        'activation-wrapper', 'activate-btn', 'activation-status', 'app-container', 'form-wrapper',
-        'show-form-btn', 'form-close-btn', 'form-title', 'add-form', 'save-node-btn', 'add-edge-btn',
-        'node-name', 'node-bio', 'node-image', 'image-preview', 'edge-section', 'from-node', 'to-node', 'edge-label',
-        'bio-card', 'bio-avatar', 'bio-name', 'bio-text', 'close-btn', 'details-btn', 'edit-btn', 'delete-btn',
-        'details-modal', 'details-modal-close-btn', 'details-modal-title', 'details-content',
-        'add-field-btn', 'save-details-btn', 'history-modal', 'history-title', 'history-close-btn', 'history-list'
+        'activation-wrapper', 'activate-btn', 'activation-status', 'activation-code-input',
+        'app-container', 'form-wrapper', 'show-form-btn', 'form-close-btn', 'form-title',
+        'add-form', 'save-node-btn', 'add-edge-btn', 'node-name', 'node-bio',
+        'node-image', 'image-preview', 'edge-section', 'from-node', 'to-node', 'edge-label',
+        'bio-card', 'bio-avatar', 'bio-name', 'bio-text', 'close-btn', 'details-btn',
+        'edit-btn', 'delete-btn', 'details-modal', 'details-modal-close-btn',
+        'details-modal-title', 'details-content', 'add-field-btn', 'save-details-btn',
+        'history-modal', 'history-title', 'history-close-btn', 'history-list'
     ];
     elementIds.forEach(id => dom[id] = document.getElementById(id));
     
@@ -77,7 +81,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!network) {
             const container = document.getElementById('relation-graph');
             const data = { nodes, edges };
-            const options = { /* ... vis.js options ... */ };
+            const options = {
+                nodes: { borderWidth: 4, size: 40, color: { border: '#FFFFFF', highlight: { border: '#007aff' } }, font: { color: '#333', size: 14, face: 'arial' }, shape: 'circularImage' },
+                edges: { color: '#999', width: 2, font: { align: 'top', size: 12, color: '#888', strokeWidth: 0 }, arrows: { to: { enabled: false } }, smooth: { type: 'cubicBezier' } },
+                physics: { enabled: true, solver: 'forceAtlas2Based', forceAtlas2Based: { gravitationalConstant: -80, centralGravity: 0.01, springLength: 150, damping: 0.4, avoidOverlap: 1 } },
+                interaction: { hover: true, tooltipDelay: 200 },
+            };
             network = new vis.Network(container, data, options);
             initializeAppEventListeners();
         }
@@ -86,16 +95,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const initializeAppEventListeners = () => {
         dom['show-form-btn'].addEventListener('click', () => openForm('add'));
-        [dom['form-close-btn'], dom['close-btn'], dom['history-close-btn'], dom['details-modal-close-btn']].forEach(btn => btn.addEventListener('click', () => {
-            toggleModal(btn.closest('.modal-wrapper'), false);
-        }));
+        [dom['form-close-btn'], dom['close-btn'], dom['history-close-btn'], dom['details-modal-close-btn']].forEach(btn => {
+            if (btn) btn.addEventListener('click', () => {
+                toggleModal(btn.closest('.modal-wrapper'), false);
+            });
+        });
         dom['add-form'].addEventListener('submit', saveNode);
         dom['add-edge-btn'].addEventListener('click', addEdge);
         dom['save-details-btn'].addEventListener('click', () => editingNodeId && saveDetails(editingNodeId));
         dom['add-field-btn'].addEventListener('click', () => {
             const label = prompt("请输入要添加的信息名称 (例如: QQ号)");
             if (label) {
-                // 使用 pinyin-pro 将中文转为驼峰式拼音作为 key
                 const key = pinyin_pro.pinyin(label, { toneType: 'none', type: 'camel' }).replace(/\s/g, '');
                 if (key) dom['details-content'].insertAdjacentHTML('beforeend', createFieldHTML(key, label, ''));
                 else alert("无法为该名称生成字段ID。");
@@ -241,7 +251,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const createFieldHTML = (key, label, value, type = 'input') => {
         const inputHTML = type === 'textarea' ? `<textarea data-key="${key}">${value}</textarea>` : `<input type="text" data-key="${key}" value="${value}">`;
-        return `<div class="detail-entry" onclick="showHistory('${editingNodeId}', '${key}', '${label}')"><div class="detail-entry-label">${label}</div><div class="detail-entry-value">${inputHTML}</div></div>`;
+        return `<div class="detail-entry" onclick="window.showHistory('${editingNodeId}', '${key}', '${label}')"><div class="detail-entry-label">${label}</div><div class="detail-entry-value">${inputHTML}</div></div>`;
     };
 
     const saveDetails = async (nodeId) => {
