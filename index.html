@@ -1,42 +1,148 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>档案关系系统 (重制版)</title>
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
-    <link rel="stylesheet" href="style.css">
+<html lang="zh-CN" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI 知识库</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="index.css" />
+  <script type="importmap">
+{
+  "imports": {
+    "@google/genai": "https://esm.sh/@google/genai@^1.11.0",
+    "marked": "https://esm.sh/marked@^16.1.1"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
 </head>
-<body>
-    <!-- 主容器，用于修复100vh问题 -->
-    <div id="root">
-        <!-- 激活码层 -->
-        <div id="activation-layer" class="modal-layer hidden">
-            <div class="modal-box">
-                <h3>访问授权</h3>
-                <div class="form-group">
-                    <input type="text" id="activation-code-input" placeholder=" " required><label>激活码</label>
-                </div>
-                <button id="activate-btn" class="action-btn primary">授权访问</button>
-                <p id="activation-status"></p>
+  <body>
+    <div id="app-container">
+      <nav id="sidebar">
+        <header class="sidebar-header">
+          <h1>知识目录</h1>
+          <div class="header-buttons">
+            <button id="add-button" title="添加新知识" aria-label="添加新知识" class="header-action-button">+</button>
+            <button id="settings-button" title="设置" aria-label="设置" class="header-action-button">⚙️</button>
+            <button id="theme-toggle-button" aria-label="切换主题">🌙</button>
+          </div>
+        </header>
+        <div class="search-container">
+          <input type="search" id="search-input" placeholder="筛选目录...">
+        </div>
+        <div id="directory-list">
+          <!-- Dynamic content will be inserted here -->
+        </div>
+      </nav>
+
+      <main id="main-content">
+        <section id="ai-qa-section" aria-labelledby="ai-qa-heading">
+          <h2 id="ai-qa-heading">向AI提问</h2>
+           <div class="input-group">
+                <label for="ai-question-input">向您的整个知识库提问：</label>
+                <textarea id="ai-question-input" placeholder="例如：关于第三季度财务报告的要点是什么？" rows="3"></textarea>
+                <button id="ask-ai-button">
+                    <span class="button-text">询问 AI</span>
+                    <div class="spinner" style="display: none;"></div>
+                </button>
             </div>
-        </div>
+            <div id="ai-answer-container" aria-live="polite"></div>
+        </section>
 
-        <!-- 主应用层 -->
-        <div id="app-layer" class="hidden">
-            <div id="relation-graph"></div>
-            <button id="add-node-fab" class="fab">+</button>
+        <div id="content-display-area">
+          <!-- Selected item content or welcome message -->
         </div>
+      </main>
+    </div>
 
-        <!-- 通用弹窗层 -->
-        <div id="modal-layer" class="modal-layer hidden"></div>
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <header class="modal-header">
+                <h2>AI 提供商配置</h2>
+                <button class="close-button" id="close-settings-button">&times;</button>
+            </header>
+            <form id="settings-form" class="modal-body">
+                <p class="modal-description">配置您的AI服务。信息仅保存在您的浏览器本地存储中。</p>
+                
+                <fieldset>
+                    <legend>服务商设置</legend>
+                    <label for="ai-provider">AI 提供商</label>
+                    <select id="ai-provider">
+                        <option value="gemini">Google Gemini</option>
+                        <option value="siliconflow">SiliconFlow (硅基流动)</option>
+                    </select>
+
+                    <label for="ai-api-key">API Key</label>
+                    <input type="password" id="ai-api-key" required>
+
+                    <div id="siliconflow-options">
+                      <label for="ai-base-url">API Base URL (仅 SiliconFlow 需要)</label>
+                      <input type="url" id="ai-base-url" placeholder="例如: https://api.siliconflow.cn/v1">
+                    </div>
+                </fieldset>
+
+                <fieldset>
+                    <legend>模型配置 (用于节省成本)</legend>
+                    <label for="ai-organize-model">智能整理模型</label>
+                    <input type="text" id="ai-organize-model" placeholder="用于提取标题/分类的快速模型">
+                     <label for="ai-qa-model">问答模型</label>
+                    <input type="text" id="ai-qa-model" placeholder="用于知识库问答的强大模型">
+                </fieldset>
+
+                <div class="modal-footer">
+                     <button type="submit" id="save-settings-button" class="primary-button">
+                        <span class="button-text">保存配置</span>
+                        <div class="spinner" style="display: none;"></div>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Knowledge Item Modal -->
+    <div id="knowledge-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <header class="modal-header">
+                <h2 id="knowledge-modal-title">添加新知识</h2>
+                <button class="close-button" id="close-knowledge-button">&times;</button>
+            </header>
+            <form id="knowledge-form" class="modal-body">
+                <input type="hidden" id="knowledge-id">
+                
+                <div class="ai-processing-section">
+                    <label for="knowledge-raw-text">内容 (粘贴或输入，然后点击AI整理)</label>
+                    <textarea id="knowledge-raw-text" rows="10" required></textarea>
+                    <button type="button" id="ai-organize-button" class="secondary-button">
+                        <span class="button-text">✨ AI 智能整理</span>
+                        <div class="spinner" style="display: none;"></div>
+                    </button>
+                    <small>AI将根据内容自动提取标题、类别和关键词。</small>
+                </div>
+
+                <div id="knowledge-details-section" class="knowledge-details-section hidden">
+                    <label for="knowledge-title">标题</label>
+                    <input type="text" id="knowledge-title" required>
+                    
+                    <label for="knowledge-category">类别</label>
+                    <input type="text" id="knowledge-category" required>
+                    
+                    <label for="knowledge-keywords">关键词 (用逗号分隔)</label>
+                    <input type="text" id="knowledge-keywords">
+                </div>
+
+                <div class="modal-footer">
+                     <button type="submit" id="save-knowledge-button" class="primary-button" disabled>
+                         <span class="button-text">保存</span>
+                         <div class="spinner" style="display: none;"></div>
+                    </button>
+                    <button type="button" id="delete-knowledge-button" class="delete-button hidden">删除</button>
+                </div>
+            </form>
+        </div>
     </div>
     
-    <script src="https://cdn.jsdelivr.net/npm/leancloud-storage/dist/av-min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/pinyin-pro/dist/pinyin-pro.js"></script>
-    <script src="script.js"></script>
+    <script type="module" src="index.js"></script>
+  <script type="module" src="/index.tsx"></script>
 </body>
 </html>
